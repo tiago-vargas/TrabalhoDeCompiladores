@@ -1,0 +1,6 @@
+# CLion Configuration Files
+/.idea/
+
+# Output Files
+/cmake-build-debug/
+/cmake-build-debug-event-trace/
