@@ -4,6 +4,7 @@
 	#include "src/lexer.h"
 
 	void yyerror(const char *s);
+	extern FILE *yyin;
 %}
 
 /* Define Token Precedence */
@@ -114,8 +115,9 @@ io_comunicacao:
 int main(int argc, char **argv) {
 	if (argc > 1) {
 		yyin = fopen(argv[1], "r");
-		if (yyin == NULL) {
+		if (NULL == yyin) {
 			printf("syntax: %s filename\n", argv[0]);
+			return 1;
 		}
 	}
 	yyparse(); // Calls yylex() for tokens.

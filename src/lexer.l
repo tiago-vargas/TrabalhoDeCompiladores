@@ -13,6 +13,7 @@
 "inteiro"       { return INTEIRO; }
 "booleano"      { return BOOLEANO; }
 "texto"         { return TEXTO; }
+"="             { return IGUAL; }
 
 "se"            { return SE; }
 "entao"         { return ENTAO; }
@@ -34,11 +35,13 @@
 "resolucao"     { return RESOLUCAO; }
 
 ":"             { return ':'; }
+","             { return ','; }
 ";"             { return ';'; }
 [0-9]+          { yylval = atoi(yytext); return NUM; }
 \"[^\"]*\"      { yylval = strdup(yytext); return STRING; }
 [a-zA-Z_][a-zA-Z0-9_]* { yylval = strdup(yytext); return ID; }
 
+[//].*          /* Ignorar comentários */
 [ \t\n]+        /* Ignorar espaços em branco */
 .               { printf("Caractere desconhecido: `%s`\n", yytext); }
 
