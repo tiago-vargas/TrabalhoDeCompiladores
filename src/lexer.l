@@ -1,5 +1,6 @@
 %{
-    #include "parser.h"
+	// #include "parser.h"
+	#include "parser.tab.h"
 %}
 
 %%
@@ -32,13 +33,15 @@
 "frequencia"    { return FREQUENCIA; }
 "resolucao"     { return RESOLUCAO; }
 
+":"             { return ':'; }
+";"             { return ';'; }
 [0-9]+          { yylval = atoi(yytext); return NUM; }
 \"[^\"]*\"      { yylval = strdup(yytext); return STRING; }
 [a-zA-Z_][a-zA-Z0-9_]* { yylval = strdup(yytext); return ID; }
 
 [ \t\n]+        /* Ignorar espaços em branco */
-.               { printf("Caractere desconhecido: %s\n", yytext); }
+.               { printf("Caractere desconhecido: `%s`\n", yytext); }
 
 %%
 
-int yywrap() { return 1; }
+// int yywrap() { return 1; }
