@@ -30,8 +30,10 @@
 "desligar"      { return DESLIGAR; }
 
 "como"          { return COMO; }
+"saida"         { return SAIDA; }
+"entrada"       { return ENTRADA; }
 "com valor"     { return COM_VALOR; }
-"frequencia"    { return FREQUENCIA; }
+"com frequencia" { return COM_FREQUENCIA; }
 "resolucao"     { return RESOLUCAO; }
 
 ":"             { return ':'; }
