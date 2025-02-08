@@ -1,0 +1,31 @@
+// Declaração de variáveis
+var inteiro: ledPin, brilho;
+var texto: ssid, senha;
+
+// Função de setup
+config
+	// Atribuição de valores às variáveis
+	ledPin = 2; // Pino GPIO onde o LED está conectado
+	ssid = "MinhaRedeWiFi"; // Nome da rede Wi-Fi
+	senha = "MinhaSenhaWiFi"; // Senha da rede Wi-Fi
+
+	// Configuração de pinos
+	configurar ledPin como saida;
+	configurarPWM ledPin com frequencia 5000 resolucao 8;
+
+	// Configuração de Wi-Fi
+	conectarWifi ssid senha;
+fim
+
+// Loop principal
+repita
+	brilho = 128; // Valor do PWM (0-255 para resolução de 8 bits)
+	ajustarPWM ledPin com valor brilho; // Liga o LED com 50% de brilho
+
+	esperar 1000; // Aguarda 1 segundo
+
+	brilho = 0; // Desliga o LED
+	ajustarPWM ledPin com valor brilho; // Ajusta o PWM para 0 (LED apagado)
+
+	esperar 1000; // Aguarda 1 segundo
+fim
