@@ -25,14 +25,17 @@ int main(int argc, char* argv[]) {
         AnalisadorLexico lexer(codigo);
         AnalisadorSintatico parser(lexer);
         
-        auto comandos = parser.analisar();
+        auto [comandos_config, comandos_loop] = parser.analisar();
         
         // Imprime a árvore sintática
-        ASTPrinter::imprimir(comandos);
+        std::cout << "Comandos de Configuração:\n";
+        ASTPrinter::imprimir(comandos_config);
+        std::cout << "\nComandos de Loop:\n";
+        ASTPrinter::imprimir(comandos_loop);
         
         // Gera o código C++
         GeradorCodigo gerador(parser.obterTabelaSimbolos());
-        std::string codigo_cpp = gerador.gerar(comandos);
+        std::string codigo_cpp = gerador.gerar(comandos_config, comandos_loop);
         
         std::cout << codigo_cpp;
         

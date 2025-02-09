@@ -1,6 +1,9 @@
 #pragma once
-#include "parser.hpp"
 #include <iostream>
+#include <vector>
+#include <memory>
+#include "ast.hpp"
+#include "token.hpp"
 
 class ASTPrinter {
 public:
@@ -19,14 +22,18 @@ private:
         indentacao(nivel);
         
         if (auto decl = std::dynamic_pointer_cast<ComandoDeclaracao>(comando)) {
-            std::cout << "Declaração: " << decl->tipo.lexema << " ";
+            std::cout << "Declaração: " << decl->tipo << " ";
             for (const auto& id : decl->identificadores) {
-                std::cout << id.lexema << " ";
+                std::cout << id << " ";
             }
             std::cout << "\n";
         }
         else if (auto se = std::dynamic_pointer_cast<ComandoSe>(comando)) {
             std::cout << "Se\n";
+            indentacao(nivel + 1);
+            std::cout << "Condição:\n";
+            imprimirExpressao(se->condicao);
+            std::cout << "\n";
             indentacao(nivel + 1);
             std::cout << "Então:\n";
             imprimir(se->comandos_verdadeiro, nivel + 2);
@@ -36,15 +43,37 @@ private:
                 imprimir(se->comandos_falso, nivel + 2);
             }
         }
-        // ... outros tipos de comandos
+        else if (auto repita = std::dynamic_pointer_cast<ComandoRepita>(comando)) {
+            std::cout << "Repita\n";
+            imprimir(repita->comandos, nivel + 1);
+        }
+        else if (auto esp32 = std::dynamic_pointer_cast<ComandoESP32>(comando)) {
+            std::cout << "Comando ESP32: ";
+            switch (esp32->tipo) {
+                case ComandoESP32::Tipo::CONFIGURAR_PINO:
+                    std::cout << "Configurar Pino ";
+                    break;
+                case ComandoESP32::Tipo::LIGAR:
+                    std::cout << "Ligar ";
+                    break;
+                case ComandoESP32::Tipo::DESLIGAR:
+                    std::cout << "Desligar ";
+                    break;
+            }
+            for (const auto& param : esp32->parametros) {
+                imprimirExpressao(param);
+                std::cout << " ";
+            }
+            std::cout << "\n";
+        }
     }
-
+    
     static void imprimirExpressao(const std::shared_ptr<Expressao>& expr) {
         if (auto literal = std::dynamic_pointer_cast<ExpressaoLiteral>(expr)) {
-            std::cout << literal->token.lexema;
+            std::cout << literal->valor;
         }
         else if (auto id = std::dynamic_pointer_cast<ExpressaoIdentificador>(expr)) {
-            std::cout << id->nome.lexema;
+            std::cout << id->nome;
         }
         else if (auto bin = std::dynamic_pointer_cast<ExpressaoBinaria>(expr)) {
             std::cout << "(";
