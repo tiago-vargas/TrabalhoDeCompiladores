@@ -1,6 +1,7 @@
 %{
 	// #include "parser.h"
 	#include "parser.tab.h"
+	extern int yylval; // Add this line
 %}
 
 %%
@@ -30,10 +31,8 @@
 "desligar"      { return DESLIGAR; }
 
 "como"          { return COMO; }
-"saida"         { return SAIDA; }
-"entrada"       { return ENTRADA; }
 "com valor"     { return COM_VALOR; }
-"com frequencia" { return COM_FREQUENCIA; }
+"frequencia"    { return FREQUENCIA; }
 "resolucao"     { return RESOLUCAO; }
 
 ":"             { return ':'; }

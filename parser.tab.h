@@ -72,15 +72,24 @@ extern int yydebug;
     CONECTARWIFI = 273,            /* CONECTARWIFI  */
     LIGAR = 274,                   /* LIGAR  */
     DESLIGAR = 275,                /* DESLIGAR  */
-    ID = 276,                      /* ID  */
-    NUM = 277,                     /* NUM  */
-    STRING = 278,                  /* STRING  */
-    IGUAL = 279,                   /* IGUAL  */
-    COM_VALOR = 280,               /* COM_VALOR  */
-    COMO = 281,                    /* COMO  */
-    SAIDA = 282,                   /* SAIDA  */
-    FREQUENCIA = 283,              /* FREQUENCIA  */
-    RESOLUCAO = 284                /* RESOLUCAO  */
+    ESCREVER_SERIAL = 276,         /* ESCREVER_SERIAL  */
+    LER_SERIAL = 277,              /* LER_SERIAL  */
+    ENVIAR_HTTP = 278,             /* ENVIAR_HTTP  */
+    CONFIGURAR_SERIAL = 279,       /* CONFIGURAR_SERIAL  */
+    LER_DIGITAL = 280,             /* LER_DIGITAL  */
+    LER_ANALOGICO = 281,           /* LER_ANALOGICO  */
+    ID = 282,                      /* ID  */
+    NUM = 283,                     /* NUM  */
+    STRING = 284,                  /* STRING  */
+    IGUAL = 285,                   /* IGUAL  */
+    COM_VALOR = 286,               /* COM_VALOR  */
+    COMO = 287,                    /* COMO  */
+    SAIDA = 288,                   /* SAIDA  */
+    ENTRADA = 289,                 /* ENTRADA  */
+    FREQUENCIA = 290,              /* FREQUENCIA  */
+    RESOLUCAO = 291,               /* RESOLUCAO  */
+    OP_REL = 292,                  /* OP_REL  */
+    OP_ARIT = 293                  /* OP_ARIT  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
