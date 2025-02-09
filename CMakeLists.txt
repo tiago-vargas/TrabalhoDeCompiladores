@@ -1,27 +1,31 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.10)
 project(TrabalhoDeCompiladores)
 
-# Encontrar Flex e Bison
+set(CMAKE_CXX_STANDARD 17)
+
 find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
 
-# Gerar arquivos do scanner e parser
-FLEX_TARGET(Scanner src/flex_bison/lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp)
-BISON_TARGET(Parser src/flex_bison/parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp
-             DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/parser.tab.hpp)
-ADD_FLEX_BISON_DEPENDENCY(Scanner Parser)
+flex_target(Scanner
+    src/flex_bison/lexer.l
+    ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp
+)
 
-# Configurar o projeto
-set(CMAKE_CXX_STANDARD 26)
+bison_target(Parser
+    src/flex_bison/parser.y
+    ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp
+    DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/parser.hpp
+)
+
+add_flex_bison_dependency(Scanner Parser)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# Lista de arquivos fonte
-set(SOURCES
+add_executable(TrabalhoDeCompiladores
     src/main.cpp
+    src/parser.cpp
     src/code_generator.cpp
     ${FLEX_Scanner_OUTPUTS}
     ${BISON_Parser_OUTPUTS}
 )
-
-add_executable(TrabalhoDeCompiladores ${SOURCES})

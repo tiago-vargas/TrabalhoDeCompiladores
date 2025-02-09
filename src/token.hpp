@@ -3,19 +3,33 @@
 #include <string>
 
 enum class TokenType {
+    // Tokens básicos
+    IDENTIFICADOR,
+    NUMERO,
+    STRING_LITERAL,
+    
     // Palavras-chave
+    VAR,
     CONFIG,
     REPITA,
     FIM,
-    VAR,
-    COMO,
-    SAIDA,
-    ENTRADA,
+    SE,
+    ENTAO,
+    SENAO,
+    ENQUANTO,
     
-    // Tipos de dados
+    // Tipos
     TIPO_INTEIRO,
     TIPO_BOOLEANO,
     TIPO_TEXTO,
+    
+    // Comandos ESP32
+    CONFIGURAR,
+    LIGAR,
+    DESLIGAR,
+    COMO,
+    SAIDA,
+    ENTRADA,
     
     // Símbolos
     DOIS_PONTOS,
@@ -23,8 +37,6 @@ enum class TokenType {
     IGUAL,
     IGUAL_IGUAL,
     VIRGULA,
-    
-    // Operadores
     MAIS,
     MENOS,
     MULTIPLICA,
@@ -35,25 +47,7 @@ enum class TokenType {
     MENOR_IGUAL,
     DIFERENTE,
     
-    // Outros
-    IDENTIFICADOR,
-    NUMERO,
-    STRING_LITERAL,
-    FIM_ARQUIVO,
-    
-    // Novos tokens para controle de fluxo
-    SE,
-    SENAO,
-    ENTAO,
-    ENQUANTO,
-    
-    // Tokens específicos do ESP32
-    CONFIGURAR,
-    LIGAR,
-    DESLIGAR,
-    COMO,
-    SAIDA,
-    ENTRADA,
+    FIM_ARQUIVO
 };
 
 struct Token {
@@ -61,5 +55,8 @@ struct Token {
     std::string lexema;
     int linha;
     
-    Token(TokenType t, std::string l, int lin) : tipo(t), lexema(l), linha(lin) {}
+    Token(TokenType t, std::string l, int ln) 
+        : tipo(t), lexema(std::move(l)), linha(ln) {}
+    
+    Token() : tipo(TokenType::FIM_ARQUIVO), linha(0) {}
 };

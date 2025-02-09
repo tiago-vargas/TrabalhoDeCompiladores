@@ -1,10 +1,12 @@
 #pragma once
 
 #include "token.hpp"
-#include <vector>
-#include <memory>
-#include <stdexcept>
+#include "ast.hpp"
 #include "symbol_table.hpp"
+#include <memory>
+#include <vector>
+
+class AnalisadorLexico;  // Forward declaration
 
 // Definição das classes para a árvore sintática abstrata (AST)
 class Expressao {
@@ -119,14 +121,7 @@ private:
     TipoVariavel converterTipoToken(TokenType tipo);
     
 public:
-    explicit AnalisadorSintatico(AnalisadorLexico& l) : lexer(l) {
-        token_atual = lexer.proximoToken();
-    }
-    
+    explicit AnalisadorSintatico(AnalisadorLexico& l);
     std::vector<std::shared_ptr<Comando>> analisar();
-    std::shared_ptr<Comando> analisarDeclaracao();
-    std::shared_ptr<Comando> analisarComando();
-    std::shared_ptr<Expressao> analisarExpressao();
-    
     const TabelaSimbolos& obterTabelaSimbolos() const { return tabela_simbolos; }
 };
