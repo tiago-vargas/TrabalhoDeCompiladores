@@ -21,6 +21,7 @@ TipoVariavel atual_tipo;
     std::shared_ptr<Comando>* cmd;
     std::vector<std::shared_ptr<Comando>>* cmds;
     std::vector<std::string>* ids;
+    TipoVariavel tipo;
 }
 
 %token CONFIG REPITA FIM VAR
@@ -33,9 +34,10 @@ TipoVariavel atual_tipo;
 %token <string_val> IDENTIFICADOR NUMERO STRING_LITERAL
 
 %type <expr> expressao
-%type <cmd> comando declaracao
-%type <cmds> lista_comandos bloco_comandos
+%type <cmd> comando declaracao atribuicao comando_se comando_repita comando_esp32 comando_enquanto
+%type <cmds> lista_comandos bloco_comandos programa
 %type <ids> lista_identificadores
+%type <tipo> tipo_dado
 
 %left IGUAL_IGUAL DIFERENTE
 %left MAIOR MENOR MAIOR_IGUAL MENOR_IGUAL
@@ -44,8 +46,12 @@ TipoVariavel atual_tipo;
 
 %%
 
-programa: lista_comandos
-    { comandos_globais = *$1; }
+programa: 
+    lista_comandos
+    { 
+        comandos_globais = *$1;
+        $$ = $1;
+    }
     ;
 
 lista_comandos: 
@@ -53,11 +59,13 @@ lista_comandos:
     { 
         $$ = new std::vector<std::shared_ptr<Comando>>();
         $$->push_back(*$1);
+        delete $1;
     }
     | lista_comandos comando 
     { 
         $1->push_back(*$2);
         $$ = $1;
+        delete $2;
     }
     ;
 
@@ -67,14 +75,17 @@ comando:
     | comando_se { $$ = $1; }
     | comando_repita { $$ = $1; }
     | comando_esp32 { $$ = $1; }
+    | comando_enquanto { $$ = $1; }
     ;
 
 declaracao:
     VAR tipo_dado DOIS_PONTOS lista_identificadores PONTO_VIRGULA
     {
+        atual_tipo = $2;
         $$ = new std::shared_ptr<Comando>(
             std::make_shared<ComandoDeclaracao>($2, *$4)
         );
+        delete $4;
     }
     ;
 
@@ -90,12 +101,14 @@ lista_identificadores:
         $$ = new std::vector<std::string>();
         $$->push_back($1);
         tabela_simbolos.inserir($1, atual_tipo);
+        free($1);
     }
     | lista_identificadores VIRGULA IDENTIFICADOR
     {
         $1->push_back($3);
         tabela_simbolos.inserir($3, atual_tipo);
         $$ = $1;
+        free($3);
     }
     ;
 
@@ -109,6 +122,8 @@ atribuicao:
             std::make_shared<ComandoAtribuicao>($1, *$3)
         );
         tabela_simbolos.marcarComoInicializada($1);
+        free($1);
+        delete $3;
     }
     ;
 
@@ -118,12 +133,17 @@ comando_se:
         $$ = new std::shared_ptr<Comando>(
             std::make_shared<ComandoSe>(*$2, *$4)
         );
+        delete $2;
+        delete $4;
     }
     | SE expressao ENTAO bloco_comandos SENAO bloco_comandos FIM
     {
         $$ = new std::shared_ptr<Comando>(
             std::make_shared<ComandoSe>(*$2, *$4, *$6)
         );
+        delete $2;
+        delete $4;
+        delete $6;
     }
     ;
 
@@ -133,6 +153,7 @@ comando_repita:
         $$ = new std::shared_ptr<Comando>(
             std::make_shared<ComandoRepita>(*$2)
         );
+        delete $2;
     }
     ;
 
@@ -142,6 +163,8 @@ comando_enquanto:
         $$ = new std::shared_ptr<Comando>(
             std::make_shared<ComandoEnquanto>(*$2, *$3)
         );
+        delete $2;
+        delete $3;
     }
     ;
 
@@ -195,11 +218,13 @@ bloco_comandos:
     {
         $$ = new std::vector<std::shared_ptr<Comando>>();
         $$->push_back(*$1);
+        delete $1;
     }
     | bloco_comandos comando
     {
         $1->push_back(*$2);
         $$ = $1;
+        delete $2;
     }
     ;
 
@@ -209,6 +234,7 @@ expressao:
         $$ = new std::shared_ptr<Expressao>(
             std::make_shared<ExpressaoLiteral>($1)
         );
+        free($1);
     }
     | IDENTIFICADOR
     {
@@ -218,6 +244,7 @@ expressao:
         $$ = new std::shared_ptr<Expressao>(
             std::make_shared<ExpressaoIdentificador>($1)
         );
+        free($1);
     }
     | expressao MAIS expressao
     {
@@ -226,6 +253,8 @@ expressao:
                 OperadorBinario::SOMA, *$1, *$3
             )
         );
+        delete $1;
+        delete $3;
     }
     | expressao MENOS expressao
     {
@@ -234,6 +263,8 @@ expressao:
                 OperadorBinario::SUBTRACAO, *$1, *$3
             )
         );
+        delete $1;
+        delete $3;
     }
     | expressao MULTIPLICA expressao
     {
@@ -242,6 +273,8 @@ expressao:
                 OperadorBinario::MULTIPLICACAO, *$1, *$3
             )
         );
+        delete $1;
+        delete $3;
     }
     | expressao DIVIDE expressao
     {
@@ -250,13 +283,69 @@ expressao:
                 OperadorBinario::DIVISAO, *$1, *$3
             )
         );
+        delete $1;
+        delete $3;
     }
     | expressao MAIOR expressao
+    {
+        $$ = new std::shared_ptr<Expressao>(
+            std::make_shared<ExpressaoBinaria>(
+                OperadorBinario::MAIOR, *$1, *$3
+            )
+        );
+        delete $1;
+        delete $3;
+    }
     | expressao MENOR expressao
+    {
+        $$ = new std::shared_ptr<Expressao>(
+            std::make_shared<ExpressaoBinaria>(
+                OperadorBinario::MENOR, *$1, *$3
+            )
+        );
+        delete $1;
+        delete $3;
+    }
     | expressao MAIOR_IGUAL expressao
+    {
+        $$ = new std::shared_ptr<Expressao>(
+            std::make_shared<ExpressaoBinaria>(
+                OperadorBinario::MAIOR_IGUAL, *$1, *$3
+            )
+        );
+        delete $1;
+        delete $3;
+    }
     | expressao MENOR_IGUAL expressao
+    {
+        $$ = new std::shared_ptr<Expressao>(
+            std::make_shared<ExpressaoBinaria>(
+                OperadorBinario::MENOR_IGUAL, *$1, *$3
+            )
+        );
+        delete $1;
+        delete $3;
+    }
     | expressao IGUAL_IGUAL expressao
+    {
+        $$ = new std::shared_ptr<Expressao>(
+            std::make_shared<ExpressaoBinaria>(
+                OperadorBinario::IGUAL, *$1, *$3
+            )
+        );
+        delete $1;
+        delete $3;
+    }
     | expressao DIFERENTE expressao
+    {
+        $$ = new std::shared_ptr<Expressao>(
+            std::make_shared<ExpressaoBinaria>(
+                OperadorBinario::DIFERENTE, *$1, *$3
+            )
+        );
+        delete $1;
+        delete $3;
+    }
     ;
 
 %%
