@@ -5,10 +5,17 @@
 #include <memory>
 #include "ast.hpp"
 #include "symbol_table.hpp"
+#include "lexer.hpp"
+#include "token.hpp"
 
+// Declarações necessárias
 extern int yylex();
-extern int linha_atual;
 void yyerror(const char* s);
+extern int linha_atual;
+
+// Forward declarations para os tipos usados no union
+class Expressao;
+class Comando;
 
 TabelaSimbolos tabela_simbolos;
 std::vector<std::shared_ptr<Comando>> comandos_globais;
@@ -115,13 +122,13 @@ lista_identificadores:
 atribuicao:
     IDENTIFICADOR IGUAL expressao PONTO_VIRGULA
     {
-        if (!tabela_simbolos.buscar($1)) {
+        if (!tabela_simbolos.existe($1)) {
             yyerror("Variável não declarada");
         }
         $$ = new std::shared_ptr<Comando>(
             std::make_shared<ComandoAtribuicao>($1, *$3)
         );
-        tabela_simbolos.marcarComoInicializada($1);
+        tabela_simbolos.marcar_inicializado($1);
         free($1);
         delete $3;
     }
@@ -171,7 +178,7 @@ comando_enquanto:
 comando_esp32:
     CONFIGURAR IDENTIFICADOR COMO SAIDA PONTO_VIRGULA
     {
-        if (!tabela_simbolos.buscar($2)) {
+        if (!tabela_simbolos.existe($2)) {
             yyerror("Pino não declarado");
         }
         $$ = new std::shared_ptr<Comando>(
@@ -185,7 +192,7 @@ comando_esp32:
     }
     | LIGAR IDENTIFICADOR PONTO_VIRGULA
     {
-        if (!tabela_simbolos.buscar($2)) {
+        if (!tabela_simbolos.existe($2)) {
             yyerror("Pino não declarado");
         }
         $$ = new std::shared_ptr<Comando>(
@@ -199,7 +206,7 @@ comando_esp32:
     }
     | DESLIGAR IDENTIFICADOR PONTO_VIRGULA
     {
-        if (!tabela_simbolos.buscar($2)) {
+        if (!tabela_simbolos.existe($2)) {
             yyerror("Pino não declarado");
         }
         $$ = new std::shared_ptr<Comando>(
@@ -238,7 +245,7 @@ expressao:
     }
     | IDENTIFICADOR
     {
-        if (!tabela_simbolos.buscar($1)) {
+        if (!tabela_simbolos.existe($1)) {
             yyerror("Variável não declarada");
         }
         $$ = new std::shared_ptr<Expressao>(
@@ -337,15 +344,6 @@ expressao:
         delete $3;
     }
     | expressao DIFERENTE expressao
-    {
-        $$ = new std::shared_ptr<Expressao>(
-            std::make_shared<ExpressaoBinaria>(
-                OperadorBinario::DIFERENTE, *$1, *$3
-            )
-        );
-        delete $1;
-        delete $3;
-    }
     ;
 
 %%

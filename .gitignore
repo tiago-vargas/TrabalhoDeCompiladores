@@ -4,3 +4,4 @@
 # Output Files
 /cmake-build-debug/
 /cmake-build-debug-event-trace/
+/build

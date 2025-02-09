@@ -2,57 +2,31 @@
 
 #include <string>
 #include <unordered_map>
-#include <memory>
-#include <stdexcept>
-#include "token.hpp"
-
-enum class TipoVariavel {
-    INTEIRO,
-    BOOLEANO,
-    TEXTO
-};
+#include "ast.hpp"  // Para TipoVariavel
 
 struct Simbolo {
-    std::string nome;
     TipoVariavel tipo;
-    bool inicializada;
+    bool inicializado;
     
-    Simbolo(std::string n, TipoVariavel t)
-        : nome(std::move(n)), tipo(t), inicializada(false) {}
+    Simbolo() : tipo(TipoVariavel::INTEIRO), inicializado(false) {}
+    
+    Simbolo(TipoVariavel t, bool init = false) 
+        : tipo(t), inicializado(init) {}
 };
 
 class TabelaSimbolos {
 private:
-    std::unordered_map<std::string, std::shared_ptr<Simbolo>> simbolos;
-    
+    std::unordered_map<std::string, Simbolo> simbolos;
+
 public:
-    void inserir(const std::string& nome, TipoVariavel tipo) {
-        if (simbolos.find(nome) != simbolos.end()) {
-            throw std::runtime_error("Variável '" + nome + "' já declarada");
-        }
-        simbolos[nome] = std::make_shared<Simbolo>(nome, tipo);
-    }
+    void inserir(const std::string& nome, TipoVariavel tipo);
+    bool existe(const std::string& nome) const;
+    TipoVariavel obter_tipo(const std::string& nome) const;
+    void marcar_inicializado(const std::string& nome);
+    bool esta_inicializado(const std::string& nome) const;
     
-    std::shared_ptr<Simbolo> buscar(const std::string& nome) {
-        auto it = simbolos.find(nome);
-        if (it == simbolos.end()) {
-            throw std::runtime_error("Variável '" + nome + "' não declarada");
-        }
-        return it->second;
-    }
-    
-    void marcarComoInicializada(const std::string& nome) {
-        auto simbolo = buscar(nome);
-        simbolo->inicializada = true;
-    }
-    
-    bool estaInicializada(const std::string& nome) {
-        auto simbolo = buscar(nome);
-        return simbolo->inicializada;
-    }
-    
-    TipoVariavel obterTipo(const std::string& nome) {
-        auto simbolo = buscar(nome);
-        return simbolo->tipo;
+    // Adiciona método para obter todos os símbolos
+    const std::unordered_map<std::string, Simbolo>& obter_simbolos() const {
+        return simbolos;
     }
 };

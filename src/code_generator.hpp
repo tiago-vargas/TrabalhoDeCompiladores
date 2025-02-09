@@ -1,14 +1,16 @@
 #pragma once
 
-#include <sstream>
 #include <string>
-#include "parser.hpp"
+#include <vector>
+#include <memory>
+#include <sstream>
+#include "ast.hpp"
 #include "symbol_table.hpp"
 
 class GeradorCodigo {
 private:
-    std::stringstream codigo;
     const TabelaSimbolos& tabela_simbolos;
+    std::stringstream codigo;
     int nivel_indentacao = 0;
     
     void indentacao() {
@@ -22,10 +24,8 @@ private:
     void gerarDeclaracaoVariaveis();
     void gerarSetup(const std::vector<std::shared_ptr<Comando>>& comandos_config);
     void gerarLoop(const std::vector<std::shared_ptr<Comando>>& comandos_loop);
-    
     void gerarComando(const std::shared_ptr<Comando>& comando);
     void gerarExpressao(const std::shared_ptr<Expressao>& expr);
-    void gerarExpressaoBinaria(const ExpressaoBinaria& expr);
     std::string operadorBinarioParaString(OperadorBinario op);
     
 public:

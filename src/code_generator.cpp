@@ -16,8 +16,8 @@ void GeradorCodigo::gerarIncludesESP32() {
 
 void GeradorCodigo::gerarDeclaracaoVariaveis() {
     codigo << "// Declaração de variáveis globais\n";
-    for (const auto& [nome, simbolo] : tabela_simbolos.obterTodos()) {
-        switch (simbolo->tipo) {
+    for (const auto& [nome, simbolo] : tabela_simbolos.obter_simbolos()) {
+        switch (simbolo.tipo) {
             case TipoVariavel::INTEIRO:
                 codigo << "int " << nome << ";\n";
                 break;
@@ -67,7 +67,7 @@ void GeradorCodigo::gerarComando(const std::shared_ptr<Comando>& comando) {
         return;
     }
     else if (auto atrib = std::dynamic_pointer_cast<ComandoAtribuicao>(comando)) {
-        codigo << atrib->identificador.lexema << " = ";
+        codigo << atrib->identificador << " = ";
         gerarExpressao(atrib->valor);
         codigo << ";\n";
     }
@@ -143,10 +143,10 @@ void GeradorCodigo::gerarComando(const std::shared_ptr<Comando>& comando) {
 
 void GeradorCodigo::gerarExpressao(const std::shared_ptr<Expressao>& expr) {
     if (auto literal = std::dynamic_pointer_cast<ExpressaoLiteral>(expr)) {
-        codigo << literal->token.lexema;
+        codigo << literal->valor;
     }
     else if (auto id = std::dynamic_pointer_cast<ExpressaoIdentificador>(expr)) {
-        codigo << id->nome.lexema;
+        codigo << id->nome;
     }
     else if (auto bin = std::dynamic_pointer_cast<ExpressaoBinaria>(expr)) {
         codigo << "(";
@@ -174,9 +174,9 @@ std::string GeradorCodigo::operadorBinarioParaString(OperadorBinario op) {
     }
 }
 
-std::string GeradorCodigo::gerar(
-    const std::vector<std::shared_ptr<Comando>>& comandos_config,
-    const std::vector<std::shared_ptr<Comando>>& comandos_loop) {
+std::string GeradorCodigo::gerar(const std::vector<std::shared_ptr<Comando>>& comandos_config,
+                                const std::vector<std::shared_ptr<Comando>>& comandos_loop) {
+    codigo.str("");  // Limpa o buffer
     
     gerarCabecalho();
     gerarDeclaracaoVariaveis();

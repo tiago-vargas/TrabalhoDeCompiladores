@@ -1,73 +1,91 @@
 #include "parser.hpp"
+#include "ast.hpp"
+#include <iostream>
+#include <stdexcept>
+
+// Função auxiliar para converter TokenType para TipoVariavel
+TipoVariavel converterTipoToken(TokenType tipo) {
+    switch (tipo) {
+        case TokenType::TIPO_INTEIRO:
+            return TipoVariavel::INTEIRO;
+        case TokenType::TIPO_BOOLEANO:
+            return TipoVariavel::BOOLEANO;
+        case TokenType::TIPO_TEXTO:
+            return TipoVariavel::TEXTO;
+        default:
+            throw std::runtime_error("Tipo de variável inválido");
+    }
+}
+
+Token AnalisadorSintatico::avancar() {
+    int token_type = lexer.yylex();
+    if (token_type == 0) { // EOF
+        token_atual = Token(TokenType::FIM_ARQUIVO, "", lexer.linha_atual());
+    } else {
+        token_atual = Token(static_cast<TokenType>(token_type), 
+                          lexer.get_texto_token(), 
+                          lexer.linha_atual());
+    }
+    return token_atual;
+}
 
 Token AnalisadorSintatico::consumir(TokenType tipo) {
     if (token_atual.tipo == tipo) {
-        Token token = token_atual;
-        token_atual = lexer.proximoToken();
-        return token;
+        return avancar();
     }
-    
-    throw std::runtime_error("Erro sintático: esperado token " + 
-                           std::to_string(static_cast<int>(tipo)) +
-                           " na linha " + std::to_string(token_atual.linha));
+    erro("Token inesperado");
+    return token_atual;
 }
 
 bool AnalisadorSintatico::verificar(TokenType tipo) {
     return token_atual.tipo == tipo;
 }
 
-Token AnalisadorSintatico::avancar() {
-    Token token = token_atual;
-    token_atual = lexer.proximoToken();
-    return token;
+void AnalisadorSintatico::erro(const std::string& mensagem) {
+    throw std::runtime_error("Erro sintático: " + mensagem);
 }
 
-std::vector<std::shared_ptr<Comando>> AnalisadorSintatico::analisar() {
-    std::vector<std::shared_ptr<Comando>> comandos;
-    
-    while (token_atual.tipo != TokenType::FIM_ARQUIVO) {
-        try {
-            if (verificar(TokenType::VAR)) {
-                comandos.push_back(analisarDeclaracao());
-            } else {
-                comandos.push_back(analisarComando());
+bool AnalisadorSintatico::analisar() {
+    try {
+        avancar(); // Obtém o primeiro token
+        while (token_atual.tipo != TokenType::FIM_ARQUIVO) {
+            auto comando = analisarComando();
+            if (comando) {
+                comandos.push_back(comando);
             }
-        } catch (const std::exception& e) {
-            std::cerr << e.what() << std::endl;
-            // Recuperação de erro: avança até encontrar um ponto e vírgula
-            while (token_atual.tipo != TokenType::PONTO_VIRGULA && 
-                   token_atual.tipo != TokenType::FIM_ARQUIVO) {
-                avancar();
-            }
-            if (token_atual.tipo == TokenType::PONTO_VIRGULA) {
+            if (verificar(TokenType::PONTO_VIRGULA)) {
                 avancar();
             }
         }
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Erro durante a análise: " << e.what() << std::endl;
+        return false;
     }
-    
-    return comandos;
 }
 
 std::shared_ptr<Comando> AnalisadorSintatico::analisarDeclaracao() {
-    consumir(TokenType::VAR);
-    Token tipo_token = consumir(TokenType::TIPO_INTEIRO); // Por enquanto só inteiro
-    consumir(TokenType::DOIS_PONTOS);
+    avancar(); // Consome 'var'
+    Token tipo_token = consumir(TokenType::TIPO_INTEIRO);
+    Token id = consumir(TokenType::IDENTIFICADOR);
     
-    std::vector<Token> identificadores;
-    do {
-        Token id = consumir(TokenType::IDENTIFICADOR);
-        identificadores.push_back(id);
-        
-        // Adicionar à tabela de símbolos
-        tabela_simbolos.inserir(id.lexema, converterTipoToken(tipo_token.tipo));
-        
-        if (!verificar(TokenType::VIRGULA)) break;
-        consumir(TokenType::VIRGULA);
-    } while (true);
+    // Registra a variável na tabela de símbolos
+    tabela_simbolos.inserir(id.lexema, converterTipoToken(tipo_token.tipo));
     
-    consumir(TokenType::PONTO_VIRGULA);
+    // Cria o vetor de identificadores
+    std::vector<std::string> identificadores;
+    identificadores.push_back(id.lexema);
     
-    return std::make_shared<ComandoDeclaracao>(tipo_token, identificadores);
+    // Verifica se há inicialização
+    if (verificar(TokenType::IGUAL)) {
+        avancar(); // Consome '='
+        analisarExpressao(); // Por enquanto, apenas consome a expressão
+    }
+    
+    return std::make_shared<ComandoDeclaracao>(
+        converterTipoToken(tipo_token.tipo),
+        identificadores
+    );
 }
 
 std::shared_ptr<Comando> AnalisadorSintatico::analisarComando() {
@@ -75,14 +93,16 @@ std::shared_ptr<Comando> AnalisadorSintatico::analisarComando() {
         Token id = consumir(TokenType::IDENTIFICADOR);
         
         // Verificar se a variável foi declarada
-        tabela_simbolos.buscar(id.lexema);
+        if (!tabela_simbolos.existe(id.lexema)) {
+            throw std::runtime_error("Variável não declarada: " + id.lexema);
+        }
         
         consumir(TokenType::IGUAL);
         auto expr = analisarExpressao();
         consumir(TokenType::PONTO_VIRGULA);
         
         // Marcar variável como inicializada
-        tabela_simbolos.marcarComoInicializada(id.lexema);
+        tabela_simbolos.marcar_inicializado(id.lexema);
         
         return std::make_shared<ComandoAtribuicao>(id, expr);
     }
@@ -113,7 +133,9 @@ std::shared_ptr<Expressao> AnalisadorSintatico::analisarExpressao() {
         Token id = consumir(TokenType::IDENTIFICADOR);
         
         // Verificar se a variável foi declarada
-        tabela_simbolos.buscar(id.lexema);
+        if (!tabela_simbolos.existe(id.lexema)) {
+            throw std::runtime_error("Variável não declarada: " + id.lexema);
+        }
         
         return std::make_shared<ExpressaoIdentificador>(id);
     }
