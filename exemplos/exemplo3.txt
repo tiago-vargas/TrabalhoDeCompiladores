@@ -1,0 +1,34 @@
+
+3. **Exemplo 3 - Controle de PWM com Fade:**
+```
+// exemplo3.txt - LED com Fade
+var inteiro: ledPWM, brilho, passo;
+var booleano: aumentando;
+
+config
+    ledPWM = 5;
+    brilho = 0;
+    passo = 5;
+    aumentando = verdadeiro;
+    
+    configurar ledPWM como pwm;
+fim
+
+repita
+    // Atualiza o brilho
+    se aumentando entao
+        brilho = brilho + passo;
+        se brilho >= 255 entao
+            aumentando = falso;
+        fim
+    senao
+        brilho = brilho - passo;
+        se brilho <= 0 entao
+            aumentando = verdadeiro;
+        fim
+    fim
+    
+    ajustarPWM ledPWM, brilho;
+    esperar 50;
+fim
+```

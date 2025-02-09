@@ -1,0 +1,20 @@
+{
+    "version": 1,
+    "author": "Ryan e Tiago",
+    "editor": "wokwi",
+    "parts": [
+      { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+      { "type": "wokwi-led", "id": "ledRed", "top": 0, "left": 100, "attrs": { "color": "red" } },
+      { "type": "wokwi-led", "id": "ledGreen", "top": 0, "left": 150, "attrs": { "color": "green" } },
+      { "type": "wokwi-thermistor", "id": "temp1", "top": 50, "left": 100, "attrs": {} }
+    ],
+    "connections": [
+      [ "esp:D2", "ledRed:A" ],
+      [ "esp:D3", "ledGreen:A" ],
+      [ "esp:D4", "temp1:OUT" ],
+      [ "esp:GND", "ledRed:C" ],
+      [ "esp:GND", "ledGreen:C" ],
+      [ "esp:GND", "temp1:GND" ],
+      [ "esp:3V3", "temp1:VCC" ]
+    ]
+  }

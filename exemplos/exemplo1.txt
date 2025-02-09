@@ -1,0 +1,22 @@
+// exemplo1.txt - Exemplo 1 - LED Piscante com Controle de Velocidade:
+var inteiro: ledPin, intervalo;
+
+config
+    ledPin = 2;
+    intervalo = 1000;
+    configurar ledPin como saida;
+fim
+
+repita
+    ligar ledPin;
+    esperar intervalo;
+    desligar ledPin;
+    esperar intervalo;
+    
+    // Aumenta a velocidade
+    se intervalo > 100 entao
+        intervalo = intervalo - 100;
+    senao
+        intervalo = 1000;
+    fim
+fim

@@ -1,0 +1,11 @@
+
+Esta implementação:
+Define uma estrutura AST para representar o código fonte
+Implementa um gerador de código que converte a AST em código C++
+Gera código Arduino compatível com ESP32
+Suporta comandos básicos como configuração de pinos, PWM, delays, etc.
+Para usar, você precisará:
+Modificar seu parser (parser.y) para construir a AST durante a análise
+Compilar todos os arquivos juntos
+Executar o programa passando os arquivos de entrada e saída como argumentos
+O código gerado será similar ao que você mostrou em output.cpp, mas gerado automaticamente baseado na entrada fornecida na sua linguagem personalizada.

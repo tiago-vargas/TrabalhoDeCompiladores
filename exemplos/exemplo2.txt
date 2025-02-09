@@ -1,0 +1,35 @@
+
+2. **Exemplo 2 - Sensor de Temperatura com Alarme:**
+```
+// exemplo2.txt - Monitor de Temperatura
+var inteiro: ledVermelho, ledVerde, sensorTemp, temperatura;
+var booleano: alarmeAtivo;
+
+config
+    ledVermelho = 2;
+    ledVerde = 3;
+    sensorTemp = 4;
+    alarmeAtivo = falso;
+    
+    configurar ledVermelho como saida;
+    configurar ledVerde como saida;
+    configurar sensorTemp como entrada;
+fim
+
+repita
+    // Lê temperatura do sensor
+    temperatura = lerAnalogico sensorTemp;
+    
+    se temperatura > 30 entao
+        desligar ledVerde;
+        ligar ledVermelho;
+        alarmeAtivo = verdadeiro;
+    senao
+        desligar ledVermelho;
+        ligar ledVerde;
+        alarmeAtivo = falso;
+    fim
+    
+    esperar 1000;
+fim
+```
