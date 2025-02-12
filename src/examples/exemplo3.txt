@@ -1,0 +1,16 @@
+var inteiro: status;
+var texto: ssid;
+var texto: senha;
+var texto: mensagem;
+
+config
+    configurarSerial 115200;
+    escreverSerial "Iniciando conexao WiFi...";
+fim
+
+repita
+    se (status > 0) {
+        escreverSerial "Verificando conexao WiFi...";
+        esperar(1000);
+    }
+fim

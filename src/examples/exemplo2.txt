@@ -1,0 +1,16 @@
+var inteiro: botao;
+var inteiro: led;
+var inteiro: estadoBotao;
+
+config
+    configurarSerial 115200;
+    configurarPWM 2 com frequencia 5000 resolucao 8;
+fim
+
+repita
+    se (estadoBotao > 0) {
+        ajustarPWM 2 com valor 255;
+        escreverSerial "LED ligado!";
+        esperar(500);
+    }
+fim

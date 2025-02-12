@@ -1,0 +1,16 @@
+var inteiro: temperatura;
+var texto: mensagem;
+
+config
+    configurarSerial 115200;
+    configurarPWM 2 com frequencia 5000 resolucao 8;
+    temperatura = 0;
+fim
+
+repita
+    se (temperatura > 30) {
+        ajustarPWM 2 com valor 255;
+        escreverSerial "LED no máximo - Temperatura alta!";
+        esperar(1000);
+    }
+fim
