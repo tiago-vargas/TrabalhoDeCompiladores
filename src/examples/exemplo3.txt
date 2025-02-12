@@ -1,16 +1,27 @@
+var inteiro: ledPin;
 var inteiro: status;
+var inteiro: brilho;
 var texto: ssid;
 var texto: senha;
-var texto: mensagem;
 
 config
-    configurarSerial 115200;
-    escreverSerial "Iniciando conexao WiFi...";
+    ledPin = 2;
+    ssid = "MinhaRedeWiFi";
+    senha = "MinhaSenhaWiFi";
+    configurar ledPin como saida;
+    configurarPWM 2 com frequencia 5000 resolucao 8;
+    conectarWifi ssid senha;
 fim
 
 repita
     se (status > 0) {
-        escreverSerial "Verificando conexao WiFi...";
-        esperar(1000);
+        brilho = 128;
+        ajustarPWM 2 com valor brilho;
+        escreverSerial "Conectado - LED 50%";
+        esperar 1000;
+        brilho = 0;
+        ajustarPWM 2 com valor brilho;
+        escreverSerial "Conectado - LED 0%";
+        esperar 1000;
     }
 fim

@@ -1,18 +1,16 @@
 #include <Arduino.h>
+#include <WiFi.h>
 
-// Variáveis globais
-int botao;
-int led;
-int estadoBotao;
 
 void setup() {
     Serial.begin(115200);
-    ledcSetup(2, 5000, 8);
+    ledcSetup(0, 5000, 8);
+    ledcAttachPin(2, 0);
 }
 
 void loop() {
     if (estadoBotao > 0) {
-        ledcWrite(2, 255);
+        ledcWrite(0, 255);
         Serial.println("LED ligado!");
         delay(500);
     }

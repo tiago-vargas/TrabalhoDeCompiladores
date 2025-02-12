@@ -26,21 +26,26 @@ extern int yylineno;
     Node* node;
 }
 
-%token VAR CONFIG FIM REPITA SE SENAO ENQUANTO
-%token CONFIGURAR_SERIAL ESCREVER_SERIAL ESPERAR
+%token VAR CONFIG FIM REPITA SE SENAO ENQUANTO ENTAO
+%token CONFIGURAR_SERIAL ESCREVER_SERIAL LER_SERIAL ESPERAR
 %token CONFIG_PWM AJUSTAR_PWM COM FREQUENCIA RESOLUCAO VALOR
-%token WIFI PIN
-%token HIGH LOW INPUT OUTPUT
+%token WIFI PIN CONECTAR_WIFI ENVIAR_HTTP
+%token HIGH LOW INPUT OUTPUT COMO ENTRADA SAIDA CONFIGURAR
+%token LIGAR DESLIGAR LER_DIGITAL LER_ANALOGICO
 %token <str> NUMERO ID STRING
 %token TIPO_INT TIPO_STRING TIPO_BOOL
-%token EQ NEQ
+%token EQ NEQ LEQ GEQ
+%token '+' '-' '*' '/'
 %token '=' '>' '<' ';' '(' ')' '{' '}'
 
 %type <node> programa declaracoes declaracao tipo
 %type <node> bloco_config comandos_config comando_config
 %type <node> bloco_repita comandos comando
-%type <node> comando_serial comando_pwm comando_if
-%type <node> atribuicao expr condicao
+%type <node> comando_serial comando_pwm comando_if comando_while
+%type <node> comando_gpio comando_wifi
+%type <node> atribuicao expr condicao valor
+%type <node> operador_rel operador_arit
+%type <node> ID_LIST
 
 %%
 
@@ -55,9 +60,7 @@ programa:
     ;
 
 declaracoes:
-    { 
-        $$ = new Node(NODE_VAR_DECL); 
-    }
+    { $$ = new Node(NODE_VAR_DECL); }
     | declaracoes declaracao
     {
         $$ = $1;
@@ -66,38 +69,46 @@ declaracoes:
     ;
 
 declaracao:
-    VAR tipo ':' ID ';'
+    VAR TIPO_INT ':' ID_LIST ';'
     {
-        $$ = new Node(NODE_VAR_DECL, $4);
-        $$->children.push_back($2);
+        $$ = new Node(NODE_VAR_DECL, "inteiro");
+        $$->children.push_back($4);
+    }
+    | VAR TIPO_STRING ':' ID_LIST ';'
+    {
+        $$ = new Node(NODE_VAR_DECL, "texto");
+        $$->children.push_back($4);
+    }
+    ;
+
+ID_LIST:
+    ID 
+    { 
+        $$ = new Node(NODE_VAR_DECL, $1);
+    }
+    | ID ',' ID_LIST
+    {
+        $$ = new Node(NODE_VAR_DECL, $1);
+        $$->children.push_back($3);
     }
     ;
 
 tipo:
-    TIPO_INT { 
-        $$ = new Node(NODE_VAR_DECL, "int"); 
-    }
-    | TIPO_STRING { 
-        $$ = new Node(NODE_VAR_DECL, "String"); 
-    }
+    TIPO_INT { $$ = new Node(NODE_TYPE, "int"); }
+    | TIPO_STRING { $$ = new Node(NODE_TYPE, "String"); }
+    | TIPO_BOOL { $$ = new Node(NODE_TYPE, "bool"); }
     ;
 
 bloco_config:
     CONFIG comandos_config FIM
     {
         $$ = new Node(NODE_CONFIG);
-        if ($2) {
-            $$->children = $2->children;
-            $2->children.clear();
-            delete $2;
-        }
+        if ($2) $$->children.push_back($2);
     }
     ;
 
 comandos_config:
-    { 
-        $$ = new Node(NODE_CONFIG); 
-    }
+    { $$ = new Node(NODE_COMMANDS); }
     | comandos_config comando_config
     {
         $$ = $1;
@@ -106,26 +117,20 @@ comandos_config:
     ;
 
 comando_config:
+    comando_serial
+    | comando_pwm
+    | comando_gpio
+    | comando_wifi
+    | atribuicao ';'
+    ;
+
+comando_serial:
     CONFIGURAR_SERIAL NUMERO ';'
     {
         $$ = new Node(NODE_SERIAL, "configurar");
         $$->children.push_back(new Node(NODE_NUMBER, $2));
     }
-    | CONFIG_PWM NUMERO COM FREQUENCIA NUMERO RESOLUCAO NUMERO ';'
-    {
-        $$ = new Node(NODE_PWM, "configurar");
-        $$->children.push_back(new Node(NODE_NUMBER, $2));
-        $$->children.push_back(new Node(NODE_NUMBER, $5));
-        $$->children.push_back(new Node(NODE_NUMBER, $7));
-    }
-    | atribuicao
-    {
-        $$ = $1;
-    }
-    ;
-
-comando_serial:
-    ESCREVER_SERIAL STRING ';'
+    | ESCREVER_SERIAL STRING ';'
     {
         $$ = new Node(NODE_SERIAL, "escrever");
         $$->children.push_back(new Node(NODE_STRING, $2));
@@ -133,117 +138,181 @@ comando_serial:
     ;
 
 comando_pwm:
-    AJUSTAR_PWM NUMERO COM VALOR NUMERO ';'
+    CONFIG_PWM NUMERO COM FREQUENCIA NUMERO RESOLUCAO NUMERO ';'
+    {
+        $$ = new Node(NODE_PWM, "configurar");
+        $$->children.push_back(new Node(NODE_NUMBER, $2));
+        $$->children.push_back(new Node(NODE_NUMBER, $5));
+        $$->children.push_back(new Node(NODE_NUMBER, $7));
+    }
+    | AJUSTAR_PWM NUMERO COM VALOR valor ';'
     {
         $$ = new Node(NODE_PWM, "ajustar");
         $$->children.push_back(new Node(NODE_NUMBER, $2));
-        $$->children.push_back(new Node(NODE_NUMBER, $5));
+        $$->children.push_back($5);
     }
     ;
 
-bloco_repita:
-    REPITA comandos FIM
+valor:
+    NUMERO { $$ = new Node(NODE_NUMBER, $1); }
+    | ID { $$ = new Node(NODE_VAR_DECL, $1); }
+    ;
+
+comando_gpio:
+    CONFIGURAR ID COMO SAIDA ';'
     {
-        std::cout << "DEBUG: Criando bloco repita" << std::endl;
-        $$ = new Node(NODE_REPEAT);
-        if ($2) {
-            std::cout << "DEBUG: comandos não é nulo" << std::endl;
-            std::cout << "DEBUG: número de comandos: " << $2->children.size() << std::endl;
-            // Ao invés de mover os comandos, vamos copiá-los
-            for (Node* cmd : $2->children) {
-                if (cmd) {
-                    std::cout << "DEBUG: Adicionando comando tipo " << cmd->type << std::endl;
-                    // Não transferimos a propriedade do nó
-                    $$->children.push_back(cmd);
-                }
-            }
-            // Limpar apenas o container, não os nós
-            $2->children.clear();
-            delete $2;
-        } else {
-            std::cout << "DEBUG: comandos é nulo" << std::endl;
-        }
-        std::cout << "DEBUG: Bloco repita criado com " << $$->children.size() << " comandos" << std::endl;
+        $$ = new Node(NODE_GPIO, "configurar");
+        $$->children.push_back(new Node(NODE_VAR_DECL, $2));
+        $$->children.push_back(new Node(NODE_STRING, "OUTPUT"));
     }
     ;
 
-comandos:
-    { 
-        $$ = new Node(NODE_REPEAT); 
-    }
-    | comandos comando
+comando_wifi:
+    CONECTAR_WIFI ID ID ';'
     {
-        if ($1 == nullptr) {
-            $1 = new Node(NODE_REPEAT);
-        }
-        $$ = $1;
-        if ($2) $$->children.push_back($2);
-    }
-    ;
-
-comando:
-    comando_if { $$ = $1; }
-    | comando_pwm { $$ = $1; }
-    | comando_serial { $$ = $1; }
-    | ESPERAR '(' NUMERO ')' ';'
-    {
-        $$ = new Node(NODE_DELAY);
-        $$->children.push_back(new Node(NODE_NUMBER, $3));
+        $$ = new Node(NODE_WIFI, "conectar");
+        $$->children.push_back(new Node(NODE_VAR_DECL, $2));
+        $$->children.push_back(new Node(NODE_VAR_DECL, $3));
     }
     ;
 
 comando_if:
     SE '(' condicao ')' '{' comandos '}'
     {
-        std::cout << "DEBUG: Criando comando if" << std::endl;
         $$ = new Node(NODE_IF);
-        
-        if ($3) {
-            std::cout << "DEBUG: Adicionando condição ao if, tipo: " << $3->type << std::endl;
-            $$->children.push_back($3);
+        $$->children.push_back($3);
+        if ($6) {
+            for (Node* cmd : $6->children) {
+                $$->children.push_back(cmd);
+            }
+            $6->children.clear();
+            delete $6;
         }
+    }
+    | SE '(' condicao ')' '{' comandos '}' SENAO '{' comandos '}'
+    {
+        $$ = new Node(NODE_IF);
+        $$->children.push_back($3);
+        Node* then_block = new Node(NODE_THEN);
+        Node* else_block = new Node(NODE_ELSE);
         
         if ($6) {
-            std::cout << "DEBUG: Processando " << $6->children.size() << " comandos do if" << std::endl;
             for (Node* cmd : $6->children) {
-                if (cmd) {
-                    std::cout << "DEBUG: Adicionando comando tipo " << cmd->type << " ao corpo do if" << std::endl;
-                    $$->children.push_back(cmd);
-                }
+                then_block->children.push_back(cmd);
             }
-            // Limpar apenas o container, não os nós
             $6->children.clear();
             delete $6;
         }
         
-        std::cout << "DEBUG: Comando if finalizado com " << $$->children.size() << " filhos" << std::endl;
+        if ($10) {
+            for (Node* cmd : $10->children) {
+                else_block->children.push_back(cmd);
+            }
+            $10->children.clear();
+            delete $10;
+        }
+        
+        $$->children.push_back(then_block);
+        $$->children.push_back(else_block);
+    }
+    ;
+
+comando_while:
+    ENQUANTO '{' comandos '}'
+    {
+        $$ = new Node(NODE_WHILE);
+        if ($3) {
+            for (Node* cmd : $3->children) {
+                $$->children.push_back(cmd);
+            }
+            $3->children.clear();
+            delete $3;
+        }
     }
     ;
 
 condicao:
-    expr '>' expr
+    expr operador_rel expr
     {
-        $$ = new Node(NODE_EXPR, ">");
-        if ($1) $$->children.push_back($1);
-        if ($3) $$->children.push_back($3);
+        $$ = new Node(NODE_EXPR, $2->value);
+        $$->children.push_back($1);
+        $$->children.push_back($3);
+        delete $2;
     }
     ;
 
-expr:
-    ID { $$ = new Node(NODE_VAR_DECL, $1); }
-    | NUMERO { $$ = new Node(NODE_NUMBER, $1); }
+operador_rel:
+    '>' { $$ = new Node(NODE_OPERATOR, ">"); }
+    | '<' { $$ = new Node(NODE_OPERATOR, "<"); }
+    | EQ { $$ = new Node(NODE_OPERATOR, "=="); }
+    | NEQ { $$ = new Node(NODE_OPERATOR, "!="); }
+    | LEQ { $$ = new Node(NODE_OPERATOR, "<="); }
+    | GEQ { $$ = new Node(NODE_OPERATOR, ">="); }
     ;
 
 atribuicao:
-    ID '=' expr ';'
+    ID '=' expr
     {
         $$ = new Node(NODE_ASSIGN, $1);
         $$->children.push_back($3);
     }
+    | ID '=' STRING
+    {
+        $$ = new Node(NODE_ASSIGN, $1);
+        $$->children.push_back(new Node(NODE_STRING, $3));
+    }
+    ;
+
+expr:
+    NUMERO { $$ = new Node(NODE_NUMBER, $1); }
+    | ID { $$ = new Node(NODE_VAR_DECL, $1); }
+    | STRING { $$ = new Node(NODE_STRING, $1); }
+    | expr operador_arit expr
+    {
+        $$ = new Node(NODE_EXPR, $2->value);
+        $$->children.push_back($1);
+        $$->children.push_back($3);
+        delete $2;
+    }
+    ;
+
+operador_arit:
+    '+' { $$ = new Node(NODE_OPERATOR, "+"); }
+    | '-' { $$ = new Node(NODE_OPERATOR, "-"); }
+    | '*' { $$ = new Node(NODE_OPERATOR, "*"); }
+    | '/' { $$ = new Node(NODE_OPERATOR, "/"); }
+    ;
+
+bloco_repita:
+    REPITA comandos FIM
+    {
+        $$ = new Node(NODE_REPEAT);
+        if ($2) $$->children.push_back($2);
+    }
+    ;
+
+comandos:
+    { $$ = new Node(NODE_COMMANDS); }
+    | comandos comando
+    {
+        $$ = $1;
+        if ($2) $$->children.push_back($2);
+    }
+    ;
+
+comando:
+    comando_serial { $$ = $1; }
+    | comando_pwm { $$ = $1; }
+    | comando_gpio { $$ = $1; }
+    | comando_wifi { $$ = $1; }
+    | comando_if { $$ = $1; }
+    | comando_while { $$ = $1; }
+    | atribuicao ';' { $$ = $1; }
+    | ESPERAR NUMERO ';' { $$ = new Node(NODE_DELAY, $2); }
     ;
 
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Erro: %s\n", s);
+    fprintf(stderr, "Erro na linha %d: %s\n", yylineno, s);
 }

@@ -9,25 +9,33 @@ enum NodeType {
     NODE_VAR_DECL,
     NODE_CONFIG,
     NODE_REPEAT,
+    NODE_COMMANDS,
     NODE_IF,
+    NODE_THEN,
+    NODE_ELSE,
     NODE_WHILE,
     NODE_SERIAL,
+    NODE_PWM,
+    NODE_GPIO,
+    NODE_WIFI,
     NODE_DELAY,
     NODE_ASSIGN,
-    NODE_PWM,
-    NODE_PIN,
-    NODE_WIFI,
     NODE_EXPR,
+    NODE_TYPE,
+    NODE_OPERATOR,
     NODE_NUMBER,
-    NODE_STRING
+    NODE_STRING,
+    NODE_BOOL,
+    NODE_COMMAND
 };
 
-struct Node {
+class Node {
+public:
     NodeType type;
     std::string value;
     std::vector<Node*> children;
-    
-    Node(NodeType t, std::string v = "") : type(t), value(v) {}
+
+    Node(NodeType t, const std::string& v = "") : type(t), value(v) {}
     ~Node() {
         for (Node* child : children) {
             delete child;

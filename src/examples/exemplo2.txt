@@ -11,6 +11,6 @@ repita
     se (estadoBotao > 0) {
         ajustarPWM 2 com valor 255;
         escreverSerial "LED ligado!";
-        esperar(500);
+        esperar 500;
     }
 fim
