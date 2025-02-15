@@ -1,7 +1,7 @@
 %{
 	#include <stdio.h>
 	#include <stdlib.h>
-	#include "src/lexer.h"
+	#include "lexer.h"
 	#include "parser.tab.h" // Add this line
 
 	void yyerror(const char *s);
