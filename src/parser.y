@@ -7,7 +7,7 @@
 	extern FILE *yyin;
 
 	char line[4096];
-	char *generated_code; // Global variable to store the generated code
+	char *generated_code = NULL; // Global variable to store the generated code
 %}
 
 %union {
@@ -15,11 +15,13 @@
 	char *str;
 }
 
+%define parse.trace
 %debug
 
 /* Define Token Precedence */
-%left '<' '>' LE GE EQ NE /* Relational operators (<, >, <=, >=, ==, !=) */
-%left '+' '-' '*' '/' /* Arithmetic operators (+, -, *, /) */
+%left OP_REL /* Relational operators (<, >, <=, >=, ==, !=) */
+%left OP_ARIT_1 /* Arithmetic operators (+, -) */
+%left OP_ARIT_2 /* Arithmetic operators (*, /) */
 
 /* Token Definitions */
 %token CONFIG REPITA FIM VAR INTEIRO BOOLEANO TEXTO SE ENTAO SENAO ENQUANTO
@@ -30,11 +32,13 @@
 %token <num> NUM
 %token COMO SAIDA ENTRADA COM VALOR FREQUENCIA RESOLUCAO
 %token EQ LE GE NE
+%token <str> OP_REL OP_ARIT_1 OP_ARIT_2
 
 %type <str> goal programa declaracao declaracoes config bloco_repita
 %type <str> expressao comandos comando tipo lista_ids configuracao controle acao
-%type <str> atribuicao io_comunicacao
-%type <str> op_rel op_arit
+%type <str> atribuicao io_entrada io_saida
+
+%printer { fprintf(yyo, "`%s`", $$); } <str>
 
 %start goal
 
@@ -76,7 +80,6 @@ declaracoes
 
 declaracao
 	: VAR tipo ':' lista_ids ';'   {
-		// $$ = ";\n";
 		asprintf(&$$, "%s %s;\n", $tipo, $lista_ids);
 	}
 	;
@@ -130,7 +133,7 @@ comando
 	| configuracao
 	| controle
 	| acao
-	| io_comunicacao
+	| io_saida
 	;
 
 atribuicao
@@ -139,29 +142,15 @@ atribuicao
 	}
 	;
 
-/* Expressions (Numbers, Strings, IDs, Comparisons, Arithmetic) */
 expressao
 	: NUM       { asprintf(&$$, "%d", $NUM); }
 	| STRING    { $$ = strdup($STRING); }
 	| ID        { $$ = strdup($ID); }
-	| expressao op_rel expressao { asprintf(&$$, "%s %s %s", $1, $op_rel, $3); }
-	| expressao op_arit expressao { asprintf(&$$, "%s %s %s", $1, $op_arit, $3); }
-	;
-
-op_rel
-	: '<' { $$ = strdup("<"); }
-	| '>' { $$ = strdup(">"); }
-	| LE  { $$ = strdup("<="); }
-	| GE  { $$ = strdup(">="); }
-	| EQ  { $$ = strdup("=="); }
-	| NE  { $$ = strdup("!="); }
-	;
-
-op_arit
-	: '+' { $$ = strdup("+"); }
-	| '-' { $$ = strdup("-"); }
-	| '*' { $$ = strdup("*"); }
-	| '/' { $$ = strdup("/"); }
+	| expressao OP_REL expressao { asprintf(&$$, "%s %s %s", $1, $OP_REL, $3); }
+	| expressao OP_ARIT_1 expressao { asprintf(&$$, "%s %s %s", $1, $OP_ARIT_1, $3); }
+	| expressao OP_ARIT_2 expressao { asprintf(&$$, "%s %s %s", $1, $OP_ARIT_2, $3); }
+	| '(' expressao ')' { asprintf(&$$, "(%s)", $2); }
+	| io_entrada
 	;
 
 /* GPIO and PWM Configuration */
@@ -212,22 +201,29 @@ acao
 	}
 	;
 
-/* I/O and Communication */
-io_comunicacao
+/* I/O Input */
+io_entrada
+	: LER_DIGITAL ID {
+		asprintf(&$$, "digitalRead(%s)", $ID);
+	}
+	| LER_ANALOGICO ID {
+		asprintf(&$$, "analogRead(%s)", $ID);
+	}
+	| LER_SERIAL {
+		asprintf(&$$, "Serial.read()");
+	}
+	;
+
+/* I/O Output */
+io_saida
 	: ESCREVER_SERIAL STRING ';' {
 		asprintf(&$$, "Serial.println(%s);\n", $STRING);
 	}
-	| ID '=' LER_SERIAL ';' {
-		asprintf(&$$, "%s = Serial.read();\n", $ID);
-	}
-	| ID '=' LER_DIGITAL ID ';' {
-		asprintf(&$$, "%s = digitalRead(%s);\n", $1, $4);
-	}
-	| ID '=' LER_ANALOGICO ID ';' {
-		asprintf(&$$, "%s = analogRead(%s);\n", $1, $4);
-	}
 	| ENVIAR_HTTP STRING STRING ';' {
 		asprintf(&$$, "http.begin(%s);\nhttp.addHeader(\"Content-Type\", \"application/x-www-form-urlencoded\");\nhttp.POST(%s);\nhttp.end();\n", $2, $3);
+	}
+	| ENVIAR_HTTP STRING ID ';' {
+		asprintf(&$$, "http.begin(%s);\nhttp.addHeader(\"Content-Type\", \"application/x-www-form-urlencoded\");\nhttp.POST(%s);\nhttp.end();\n", $STRING, $ID);
 	}
 	;
 
@@ -246,7 +242,7 @@ int main(int argc, char **argv)
 	}
 	yydebug = 1;
 	yyparse(); // Calls yylex() for tokens.
-	if (generated_code)
+	if (NULL != generated_code)
 	{
 		printf("%s", generated_code); // Print the generated code
 	}
@@ -255,5 +251,5 @@ int main(int argc, char **argv)
 
 void yyerror(const char* message)
 {
-	fprintf(stderr, "Syntax error at line %d: %s\n", yylineno, message);
+	fprintf(stderr, "[ERROR] %d: %s\n", yylineno, message);
 }

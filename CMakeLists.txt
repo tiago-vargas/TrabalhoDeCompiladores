@@ -10,7 +10,7 @@ find_package(FLEX REQUIRED)
 add_custom_command(
 	OUTPUT ${CMAKE_SOURCE_DIR}/src/aux/parser.tab.h ${CMAKE_SOURCE_DIR}/src/aux/parser.tab.c
 	DEPENDS ${CMAKE_SOURCE_DIR}/src/parser.y
-	COMMAND bison --defines --verbose --output=${CMAKE_SOURCE_DIR}/src/aux/parser.tab.c ${CMAKE_SOURCE_DIR}/src/parser.y
+	COMMAND bison --defines --verbose -Werror=conflicts-sr -Wcounterexamples --output=${CMAKE_SOURCE_DIR}/src/aux/parser.tab.c ${CMAKE_SOURCE_DIR}/src/parser.y
 	COMMENT "Running Bison"
 )
 

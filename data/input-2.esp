@@ -17,7 +17,6 @@ config
 	configurarSerial 115200;   // Initialize serial at 115200 baud
 fim
 
-/* Main Loop */
 repita
 	brilho = 128;
 	ajustarPWM ledPin com valor brilho;
@@ -56,5 +55,5 @@ repita
 
 	mensagem = lerSerial;      // Read serial input
 	enviarHttp "http://example.com" "dados=123";
-	enviarHttp "http://example.com" mensagem; // Send data
+	enviarHttp "http://example2.com" mensagem; // Send data
 fim
