@@ -54,6 +54,7 @@ programa
 		asprintf(
 			&$$,
 			"#include <Arduino.h>\n"
+			"#include <HTTPClient.h>"
 			"#include <WiFi.h>\n"
 			"\n"
 			"%s"
@@ -263,7 +264,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
-	yydebug = 1;
+	// yydebug = 1;
 
 	yyparse(); // Calls yylex() for tokens.
 	if (NULL != generated_code)
