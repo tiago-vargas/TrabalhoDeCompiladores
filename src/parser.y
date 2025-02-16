@@ -6,8 +6,7 @@
 	void yyerror(const char *s);
 	extern FILE *yyin;
 
-	char line[4096];
-	char *generated_code = NULL; // Global variable to store the generated code
+	char *generated_code = NULL;
 %}
 
 %union {
@@ -46,7 +45,7 @@
 
 goal
 	: programa {
-		generated_code = $programa; // Store the generated code
+		generated_code = $programa;
 	}
 	;
 
@@ -79,7 +78,7 @@ declaracoes
 	;
 
 declaracao
-	: VAR tipo ':' lista_ids ';'   {
+	: VAR tipo ':' lista_ids ';' {
 		asprintf(&$$, "%s %s;\n", $tipo, $lista_ids);
 	}
 	;
@@ -106,7 +105,7 @@ lista_ids
 	;
 
 config
-	: CONFIG comandos FIM  {
+	: CONFIG comandos FIM {
 		asprintf(&$$, "void setup() {\n%s}\n", $comandos);
 	}
 	;
@@ -143,13 +142,23 @@ atribuicao
 	;
 
 expressao
-	: NUM       { asprintf(&$$, "%d", $NUM); }
+	: NUM {
+		asprintf(&$$, "%d", $NUM);
+	}
 	| STRING    { $$ = strdup($STRING); }
 	| ID        { $$ = strdup($ID); }
-	| expressao OP_REL expressao { asprintf(&$$, "%s %s %s", $1, $OP_REL, $3); }
-	| expressao OP_ARIT_1 expressao { asprintf(&$$, "%s %s %s", $1, $OP_ARIT_1, $3); }
-	| expressao OP_ARIT_2 expressao { asprintf(&$$, "%s %s %s", $1, $OP_ARIT_2, $3); }
-	| '(' expressao ')' { asprintf(&$$, "(%s)", $2); }
+	| expressao OP_REL expressao {
+		asprintf(&$$, "%s %s %s", $1, $OP_REL, $3);
+	}
+	| expressao OP_ARIT_1 expressao {
+		asprintf(&$$, "%s %s %s", $1, $OP_ARIT_1, $3);
+	}
+	| expressao OP_ARIT_2 expressao {
+		asprintf(&$$, "%s %s %s", $1, $OP_ARIT_2, $3);
+	}
+	| '(' expressao ')' {
+		asprintf(&$$, "(%s)", $expressao);
+	}
 	| io_entrada
 	;
 
@@ -220,10 +229,24 @@ io_saida
 		asprintf(&$$, "Serial.println(%s);\n", $STRING);
 	}
 	| ENVIAR_HTTP STRING STRING ';' {
-		asprintf(&$$, "http.begin(%s);\nhttp.addHeader(\"Content-Type\", \"application/x-www-form-urlencoded\");\nhttp.POST(%s);\nhttp.end();\n", $2, $3);
+		asprintf(
+			&$$,
+			"http.begin(%s);\n"
+			"http.addHeader(\"Content-Type\", \"application/x-www-form-urlencoded\");\n"
+			"http.POST(%s);\n"
+			"http.end();\n",
+			$2, $3
+		);
 	}
 	| ENVIAR_HTTP STRING ID ';' {
-		asprintf(&$$, "http.begin(%s);\nhttp.addHeader(\"Content-Type\", \"application/x-www-form-urlencoded\");\nhttp.POST(%s);\nhttp.end();\n", $STRING, $ID);
+		asprintf(
+			&$$,
+			"http.begin(%s);\n"
+			"http.addHeader(\"Content-Type\", \"application/x-www-form-urlencoded\");\n"
+			"http.POST(%s);\n"
+			"http.end();\n",
+			$STRING, $ID
+		);
 	}
 	;
 
@@ -241,10 +264,11 @@ int main(int argc, char **argv)
 		}
 	}
 	yydebug = 1;
+
 	yyparse(); // Calls yylex() for tokens.
 	if (NULL != generated_code)
 	{
-		printf("%s", generated_code); // Print the generated code
+		printf("%s", generated_code);
 	}
 	return 0;
 }
