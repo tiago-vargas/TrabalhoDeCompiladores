@@ -24,7 +24,7 @@
 "configurarPWM" { return CONFIGURAR_PWM; }
 "ajustarPWM"    { return AJUSTAR_PWM; }
 "esperar"       { return ESPERAR; }
-"conectarWifi"  { return CONECTARWIFI; }
+"conectarWifi"  { return CONECTAR_WIFI; }
 
 "ligar"         { return LIGAR; }
 "desligar"      { return DESLIGAR; }
@@ -38,6 +38,15 @@
 "resolucao"     { return RESOLUCAO; }
 
 "="             { return '='; }
+"=="            { yylval.str = strdup("=="); return OP_REL; }
+"<"             { yylval.str = strdup("<"); return OP_REL; }
+">"             { yylval.str = strdup(">"); return OP_REL; }
+"<="            { yylval.str = strdup("<="); return OP_REL; }
+">="            { yylval.str = strdup(">="); return OP_REL; }
+"+"             { yylval.str = strdup("+"); return OP_ARIT; }
+"-"             { yylval.str = strdup("-"); return OP_ARIT; }
+"*"             { yylval.str = strdup("*"); return OP_ARIT; }
+"/"             { yylval.str = strdup("/"); return OP_ARIT; }
 ":"             { return ':'; }
 ","             { return ','; }
 ";"             { return ';'; }
