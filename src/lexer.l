@@ -4,6 +4,8 @@
 	extern YYSTYPE yylval;
 %}
 
+%option yylineno
+
 %%
 
 "config"        { return CONFIG; }
@@ -20,11 +22,13 @@
 "senao"         { return SENAO; }
 "enquanto"      { return ENQUANTO; }
 
-"configurar"    { return CONFIGURAR; }
-"configurarPWM" { return CONFIGURAR_PWM; }
-"ajustarPWM"    { return AJUSTAR_PWM; }
-"esperar"       { return ESPERAR; }
-"conectarWifi"  { return CONECTAR_WIFI; }
+"configurar"       { return CONFIGURAR; }
+"configurarPWM"    { return CONFIGURAR_PWM; }
+"configurarSerial" { return CONFIGURAR_SERIAL; }
+"ajustarPWM"       { return AJUSTAR_PWM; }
+"esperar"          { return ESPERAR; }
+"conectarWifi"     { return CONECTAR_WIFI; }
+"enviarHttp"       { return ENVIAR_HTTP; }
 
 "ligar"         { return LIGAR; }
 "desligar"      { return DESLIGAR; }
@@ -38,15 +42,16 @@
 "resolucao"     { return RESOLUCAO; }
 
 "="             { return '='; }
-"=="            { yylval.str = strdup("=="); return OP_REL; }
-"<"             { yylval.str = strdup("<"); return OP_REL; }
-">"             { yylval.str = strdup(">"); return OP_REL; }
-"<="            { yylval.str = strdup("<="); return OP_REL; }
-">="            { yylval.str = strdup(">="); return OP_REL; }
-"+"             { yylval.str = strdup("+"); return OP_ARIT; }
-"-"             { yylval.str = strdup("-"); return OP_ARIT; }
-"*"             { yylval.str = strdup("*"); return OP_ARIT; }
-"/"             { yylval.str = strdup("/"); return OP_ARIT; }
+"=="            { yylval.str = strdup("=="); return EQ; }
+"<"             { return '<'; }
+">"             { return '>'; }
+"<="            { yylval.str = strdup("<="); return LE; }
+">="            { yylval.str = strdup(">="); return GE; }
+"!="            { yylval.str = strdup("!="); return NE; }
+"+"             { return '+'; }
+"-"             { return '-'; }
+"*"             { return '*'; }
+"/"             { return '/'; }
 ":"             { return ':'; }
 ","             { return ','; }
 ";"             { return ';'; }

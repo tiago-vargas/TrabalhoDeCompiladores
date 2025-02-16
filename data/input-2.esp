@@ -1,0 +1,60 @@
+var inteiro: ledPin, brilho, botao, sensorValor, x;
+var booleano: estadoBotao, b;
+var texto: ssid, senha, mensagem;
+
+// Setup
+config
+	ledPin = 2;                // Assign GPIO pin for LED
+	botao = 4;                 // Assign GPIO pin for button
+	ssid = "MinhaRedeWiFi";    // Assign Wi-Fi name
+	senha = "MinhaSenhaWiFi";  // Assign Wi-Fi password
+
+	configurar ledPin como saida;       // Set LED pin as output
+	configurar botao como entrada;      // Set button pin as input
+	configurarPWM ledPin com frequencia 5000 resolucao 8; // PWM config
+
+	conectarWifi ssid senha;   // Connect to Wi-Fi
+	configurarSerial 115200;   // Initialize serial at 115200 baud
+fim
+
+/* Main Loop */
+repita
+	brilho = 128;
+	ajustarPWM ledPin com valor brilho;
+
+	estadoBotao = lerDigital botao;  // Read button state
+	sensorValor = lerAnalogico sensor;
+
+	se estadoBotao == 1 entao
+		ligar ledPin;           // Turn LED on
+		escreverSerial "Botão pressionado!"; // Send message over serial
+	senao
+		desligar ledPin;        // Turn LED off
+	fim
+
+	brilho = 128;             // Set brightness level
+	ajustarPWM ledPin com valor 128; // Apply brightness
+
+	esperar 1000;             // Wait 1 second
+
+	enquanto
+		ajustarPWM ledPin com valor brilho;
+		esperar 1000;
+	fim
+
+	se brilho > 128 entao
+		ligar ledPin;
+	fim
+
+	x = (1 + 2) * 3 / (5 - 1);
+	b = 1 > 2;
+	b = 1 < 2;
+	b = 1 >= 2;
+	b = 1 <= 2;
+	b = 1 == 2;
+	b = 1 != 2;
+
+	mensagem = lerSerial;      // Read serial input
+	enviarHttp "http://example.com" "dados=123";
+	enviarHttp "http://example.com" mensagem; // Send data
+fim

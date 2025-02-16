@@ -18,8 +18,8 @@
 %debug
 
 /* Define Token Precedence */
-%left OP_REL    /* Relational operators (==, <, >, <=, >=) */
-%left OP_ARIT   /* Arithmetic operators (+, -, *, /) */
+%left '<' '>' LE GE EQ NE /* Relational operators (<, >, <=, >=, ==, !=) */
+%left '+' '-' '*' '/' /* Arithmetic operators (+, -, *, /) */
 
 /* Token Definitions */
 %token CONFIG REPITA FIM VAR INTEIRO BOOLEANO TEXTO SE ENTAO SENAO ENQUANTO
@@ -29,9 +29,12 @@
 %token <str> ID STRING
 %token <num> NUM
 %token COMO SAIDA ENTRADA COM VALOR FREQUENCIA RESOLUCAO
-%token <str> OP_REL OP_ARIT
+%token EQ LE GE NE
 
-%type <str> goal programa declaracao declaracoes config bloco_repita expressao comandos tipo lista_ids configuracao controle acao atribuicao io_comunicacao comando
+%type <str> goal programa declaracao declaracoes config bloco_repita
+%type <str> expressao comandos comando tipo lista_ids configuracao controle acao
+%type <str> atribuicao io_comunicacao
+%type <str> op_rel op_arit
 
 %start goal
 
@@ -80,22 +83,19 @@ declaracao
 
 tipo
 	: INTEIRO {
-		// $$ = "int";
-		asprintf(&$$, "int");
+		$$ = strdup("int");
 	}
 	| BOOLEANO {
-		// $$ = "bool";
-		asprintf(&$$, "bool");
+		$$ = strdup("bool");
 	}
 	| TEXTO {
-		// $$ = "char*";
-		asprintf(&$$, "char*");
+		$$ = strdup("char*");
 	}
 	;
 
 lista_ids
 	: ID {
-		asprintf(&$$, "%s", $ID);
+		$$ = strdup($ID);
 	}
 	| lista_ids ',' ID {
 		asprintf(&$$, "%s, %s", $1, $ID);
@@ -142,10 +142,26 @@ atribuicao
 /* Expressions (Numbers, Strings, IDs, Comparisons, Arithmetic) */
 expressao
 	: NUM       { asprintf(&$$, "%d", $NUM); }
-	| STRING    { asprintf(&$$, "%s", $STRING); }
-	| ID        { asprintf(&$$, "%s", $ID); }
-	| expressao OP_REL expressao { asprintf(&$$, "%s %s %s", $1, $OP_REL, $3); }
-	| expressao OP_ARIT expressao { asprintf(&$$, "%s %s %s", $1, $OP_ARIT, $3); }
+	| STRING    { $$ = strdup($STRING); }
+	| ID        { $$ = strdup($ID); }
+	| expressao op_rel expressao { asprintf(&$$, "%s %s %s", $1, $op_rel, $3); }
+	| expressao op_arit expressao { asprintf(&$$, "%s %s %s", $1, $op_arit, $3); }
+	;
+
+op_rel
+	: '<' { $$ = strdup("<"); }
+	| '>' { $$ = strdup(">"); }
+	| LE  { $$ = strdup("<="); }
+	| GE  { $$ = strdup(">="); }
+	| EQ  { $$ = strdup("=="); }
+	| NE  { $$ = strdup("!="); }
+	;
+
+op_arit
+	: '+' { $$ = strdup("+"); }
+	| '-' { $$ = strdup("-"); }
+	| '*' { $$ = strdup("*"); }
+	| '/' { $$ = strdup("/"); }
 	;
 
 /* GPIO and PWM Configuration */
@@ -183,7 +199,6 @@ controle
 /* GPIO and PWM Actions */
 acao
 	: AJUSTAR_PWM ID COM VALOR expressao ';' {
-		// asprintf(&$$, "analogWrite(%s, %s);\n", $ID, $expressao);
 		asprintf(&$$, "ledcWrite(%s, %s);\n", $ID, $expressao);
 	}
 	| ESPERAR NUM ';' {
@@ -211,7 +226,9 @@ io_comunicacao
 	| ID '=' LER_ANALOGICO ID ';' {
 		asprintf(&$$, "%s = analogRead(%s);\n", $1, $4);
 	}
-	| ENVIAR_HTTP STRING STRING ';'                                                                         {}
+	| ENVIAR_HTTP STRING STRING ';' {
+		asprintf(&$$, "http.begin(%s);\nhttp.addHeader(\"Content-Type\", \"application/x-www-form-urlencoded\");\nhttp.POST(%s);\nhttp.end();\n", $2, $3);
+	}
 	;
 
 %%
@@ -227,7 +244,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
-	// yydebug = 1;
+	yydebug = 1;
 	yyparse(); // Calls yylex() for tokens.
 	if (generated_code)
 	{
@@ -236,8 +253,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-/* Error Handling */
-void yyerror(const char *s)
+void yyerror(const char* message)
 {
-	fprintf(stderr, "Erro: %s\n", s);
+	fprintf(stderr, "Syntax error at line %d: %s\n", yylineno, message);
 }
