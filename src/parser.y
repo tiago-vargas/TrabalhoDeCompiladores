@@ -61,7 +61,7 @@ programa
 		asprintf(
 			&text,
 			"#include <Arduino.h>\n"
-			"#include <HTTPClient.h>"
+			"#include <HTTPClient.h>\n"
 			"#include <WiFi.h>\n"
 			"\n"
 			"%s"
