@@ -158,7 +158,7 @@ expressao
 		asprintf(&$$, "%s %s %s", $1, $OP_ARIT_2, $3);
 	}
 	| '(' expressao ')' {
-		asprintf(&$$, "(%s)", $expressao);
+		asprintf(&$$, "(%s)", $2);
 	}
 	| io_entrada
 	;
