@@ -7,11 +7,26 @@
 	extern FILE *yyin;
 
 	char *generated_code = NULL;
+
+	struct node* node_new(char *rule_name, char *text, struct node *child1, struct node *child2, struct node *child3);
+	void node_add_child(struct node *parent, struct node *child);
+	void print_ast(struct node *n, int depth);
+
+	struct node {
+		char *rule_name;
+		char *text;
+		struct node *child1;
+		struct node *child2;
+		struct node *child3;
+	};
+
+	struct node *root;
 %}
 
 %union {
 	int num;
 	char *str;
+	struct node *node;
 }
 
 %define parse.trace
@@ -33,11 +48,11 @@
 %token EQ LE GE NE
 %token <str> OP_REL OP_ARIT_1 OP_ARIT_2
 
-%type <str> goal programa declaracao declaracoes config bloco_repita
-%type <str> expressao comandos comando tipo lista_ids configuracao controle acao
-%type <str> atribuicao io_entrada io_saida
+%type <node> goal programa declaracao declaracoes config bloco_repita
+%type <node> expressao comandos comando tipo lista_ids configuracao controle acao
+%type <node> atribuicao io_entrada io_saida
 
-%printer { fprintf(yyo, "`%s`", $$); } <str>
+%printer { fprintf(yyo, "`%s`", $$->text); } <node>
 
 %start goal
 
@@ -45,14 +60,17 @@
 
 goal
 	: programa {
-		generated_code = $programa;
+		$$ = node_new("goal", $programa->text, $programa, NULL, NULL);
+		root = $$;
+		generated_code = $programa->text;
 	}
 	;
 
 programa
 	: declaracoes config bloco_repita {
+		char *text;
 		asprintf(
-			&$$,
+			&text,
 			"#include <Arduino.h>\n"
 			"#include <HTTPClient.h>"
 			"#include <WiFi.h>\n"
@@ -62,192 +80,263 @@ programa
 			"%s"
 			"\n"
 			"%s",
-			$declaracoes, $config, $bloco_repita
+			 $declaracoes->text, $config->text, $bloco_repita->text
 		);
+		$$ = node_new("programa", text, $declaracoes, $config, $bloco_repita);
 	}
 	;
 
 declaracoes
 	: declaracoes declaracao {
-		char *temp;
-		asprintf(&temp, "%s%s", $1, $2);
-		$$ = temp;
+		char *text;
+		asprintf(&text, "%s%s", $1->text, $2->text);
+		$$ = node_new("declaracoes", text, $1, $2, NULL);
 	}
 	| {
-		$$ = strdup("");
+		$$ = node_new("declaracoes", strdup(""), NULL, NULL, NULL);
 	}
 	;
 
 declaracao
 	: VAR tipo ':' lista_ids ';' {
-		asprintf(&$$, "%s %s;\n", $tipo, $lista_ids);
+		char *text;
+		asprintf(&text, "%s %s;\n", $tipo->text, $lista_ids->text);
+		$$ = node_new("declaracao", text, $tipo, $lista_ids, NULL);
 	}
 	;
 
 tipo
 	: INTEIRO {
-		$$ = strdup("int");
+		$$ = node_new("tipo", strdup("int"), NULL, NULL, NULL);
 	}
 	| BOOLEANO {
-		$$ = strdup("bool");
+		$$ = node_new("tipo", strdup("bool"), NULL, NULL, NULL);
 	}
 	| TEXTO {
-		$$ = strdup("char*");
+		$$ = node_new("tipo", strdup("char*"), NULL, NULL, NULL);
 	}
 	;
 
 lista_ids
 	: ID {
-		$$ = strdup($ID);
+		$$ = node_new("lista_ids", strdup($ID), NULL, NULL, NULL);
 	}
 	| lista_ids ',' ID {
-		asprintf(&$$, "%s, %s", $1, $ID);
+		char *text;
+		asprintf(&text, "%s, %s", $1->text, $ID);
+		$$ = node_new("lista_ids", text, $1, NULL, NULL);
 	}
 	;
 
 config
 	: CONFIG comandos FIM {
-		asprintf(&$$, "void setup() {\n%s}\n", $comandos);
+		char *text;
+		asprintf(&text, "void setup() {\n%s}\n", $comandos->text);
+		$$ = node_new("config", text, $comandos, NULL, NULL);
 	}
 	;
 
 bloco_repita
 	: REPITA comandos FIM {
-		asprintf(&$$, "void loop() {\n%s}\n", $comandos);
+		char *text;
+		asprintf(&text, "void loop() {\n%s}\n", $comandos->text);
+		$$ = node_new("bloco_repita", text, $comandos, NULL, NULL);
 	}
 	;
 
 comandos
 	: comandos comando {
-		char *temp;
-		asprintf(&temp, "%s%s", $1, $comando);
-		$$ = temp;
+		char *text;
+		asprintf(&text, "%s%s", $1->text, $comando->text);
+		$$ = node_new("comandos", text, $1, $comando, NULL);
 	}
 	| {
-		$$ = strdup("");
+		$$ = node_new("comandos", strdup(""), NULL, NULL, NULL);
 	}
 	;
 
 comando
-	: atribuicao
-	| configuracao
-	| controle
-	| acao
-	| io_saida
+	: atribuicao {
+		$$ = node_new("comando", $atribuicao->text, $atribuicao, NULL, NULL);
+	}
+	| configuracao {
+		$$ = node_new("comando", $configuracao->text, $configuracao, NULL, NULL);
+	}
+	| controle {
+		$$ = node_new("comando", $controle->text, $controle, NULL, NULL);
+	}
+	| acao {
+		$$ = node_new("comando", $acao->text, $acao, NULL, NULL);
+	}
+	| io_saida {
+		$$ = node_new("comando", $io_saida->text, $io_saida, NULL, NULL);
+	}
 	;
 
 atribuicao
 	: ID '=' expressao ';' {
-		asprintf(&$$, "%s = %s;\n", $ID, $expressao);
+		char *text;
+		asprintf(&text, "%s = %s;\n", $ID, $expressao->text);
+		$$ = node_new("atribuicao", text, $expressao, NULL, NULL);
 	}
 	;
 
 expressao
 	: NUM {
-		asprintf(&$$, "%d", $NUM);
+		char *text;
+		asprintf(&text, "%d", $NUM);
+		$$ = node_new("expressao", text, NULL, NULL, NULL);
 	}
-	| STRING    { $$ = strdup($STRING); }
-	| ID        { $$ = strdup($ID); }
+	| STRING {
+		$$ = node_new("expressao", strdup($STRING), NULL, NULL, NULL);
+	}
+	| ID {
+		$$ = node_new("expressao", strdup($ID), NULL, NULL, NULL);
+	}
 	| expressao OP_REL expressao {
-		asprintf(&$$, "%s %s %s", $1, $OP_REL, $3);
+		char *text;
+		asprintf(&text, "%s %s %s", $1->text, $OP_REL, $3->text);
+		$$ = node_new("expressao", text, $1, $3, NULL);
 	}
 	| expressao OP_ARIT_1 expressao {
-		asprintf(&$$, "%s %s %s", $1, $OP_ARIT_1, $3);
+		char *text;
+		asprintf(&text, "%s %s %s", $1->text, $OP_ARIT_1, $3->text);
+		$$ = node_new("expressao", text, $1, $3, NULL);
 	}
 	| expressao OP_ARIT_2 expressao {
-		asprintf(&$$, "%s %s %s", $1, $OP_ARIT_2, $3);
+		char *text;
+		asprintf(&text, "%s %s %s", $1->text, $OP_ARIT_2, $3->text);
+		$$ = node_new("expressao", text, $1, $3, NULL);
 	}
 	| '(' expressao ')' {
-		asprintf(&$$, "(%s)", $2);
+		char *text;
+		asprintf(&text, "(%s)", $2->text);
+		$$ = node_new("expressao", text, $2, NULL, NULL);
 	}
-	| io_entrada
+	| io_entrada {
+		$$ = node_new("expressao", $io_entrada->text, $io_entrada, NULL, NULL);
+	}
 	;
 
 /* GPIO and PWM Configuration */
 configuracao
 	: CONFIGURAR ID COMO SAIDA ';' {
-		asprintf(&$$, "pinMode(%s, OUTPUT);\n", $ID);
+		char *text;
+		asprintf(&text, "pinMode(%s, OUTPUT);\n", $ID);
+		$$ = node_new("configuracao", text, NULL, NULL, NULL);
 	}
 	| CONFIGURAR ID COMO ENTRADA ';' {
-		asprintf(&$$, "pinMode(%s, INPUT);\n", $ID);
+		char *text;
+		asprintf(&text, "pinMode(%s, INPUT);\n", $ID);
+		$$ = node_new("configuracao", text, NULL, NULL, NULL);
 	}
 	| CONFIGURAR_PWM ID COM FREQUENCIA NUM RESOLUCAO NUM ';' {
-		asprintf(&$$, "ledcSetup(%s, %d, %d);\n", $ID, $5, $7);
+		char *text;
+		asprintf(&text, "ledcSetup(%s, %d, %d);\n", $ID, $5, $7);
+		$$ = node_new("configuracao", text, NULL, NULL, NULL);
 	}
 	| CONECTAR_WIFI ID ID ';' {
-		asprintf(&$$, "WiFi.begin(%s, %s);\n", $2, $3);
+		char *text;
+		asprintf(&text, "WiFi.begin(%s, %s);\n", $2, $3);
+		$$ = node_new("configuracao", text, NULL, NULL, NULL);
 	}
 	| CONFIGURAR_SERIAL NUM ';' {
-		asprintf(&$$, "Serial.begin(%d);\n", $NUM);
+		char *text;
+		asprintf(&text, "Serial.begin(%d);\n", $NUM);
+		$$ = node_new("configuracao", text, NULL, NULL, NULL);
 	}
 	;
 
 /* Control Structures */
 controle
 	: SE expressao ENTAO comandos SENAO comandos FIM {
-		asprintf(&$$, "if (%s) {\n%s} else {\n%s}\n", $expressao, $4, $6);
+		char *text;
+		asprintf(&text, "if (%s) {\n%s} else {\n%s}\n", $expressao->text, $4->text, $6->text);
+		$$ = node_new("controle", text, $expressao, $4, $6);
 	}
 	| SE expressao ENTAO comandos FIM {
-		asprintf(&$$, "if (%s) {\n%s}\n", $expressao, $comandos);
+		char *text;
+		asprintf(&text, "if (%s) {\n%s}\n", $expressao->text, $comandos->text);
+		$$ = node_new("controle", text, $expressao, $comandos, NULL);
 	}
 	| ENQUANTO comandos FIM {
-		asprintf(&$$, "while (true) {\n%s}\n", $comandos);
+		char *text;
+		asprintf(&text, "while (true) {\n%s}\n", $comandos->text);
+		$$ = node_new("controle", text, $comandos, NULL, NULL);
 	}
 	;
 
 /* GPIO and PWM Actions */
 acao
 	: AJUSTAR_PWM ID COM VALOR expressao ';' {
-		asprintf(&$$, "ledcWrite(%s, %s);\n", $ID, $expressao);
+		char *text;
+		asprintf(&text, "ledcWrite(%s, %s);\n", $ID, $expressao->text);
+		$$ = node_new("acao", text, $expressao, NULL, NULL);
 	}
 	| ESPERAR NUM ';' {
-		asprintf(&$$, "delay(%d);\n", $NUM);
+		char *text;
+		asprintf(&text, "delay(%d);\n", $NUM);
+		$$ = node_new("acao", text, NULL, NULL, NULL);
 	}
 	| LIGAR ID ';' {
-		asprintf(&$$, "digitalWrite(%s, HIGH);\n", $ID);
+		char *text;
+		asprintf(&text, "digitalWrite(%s, HIGH);\n", $ID);
+		$$ = node_new("acao", text, NULL, NULL, NULL);
 	}
 	| DESLIGAR ID ';' {
-		asprintf(&$$, "digitalWrite(%s, LOW);\n", $ID);
+		char *text;
+		asprintf(&text, "digitalWrite(%s, LOW);\n", $ID);
+		$$ = node_new("acao", text, NULL, NULL, NULL);
 	}
 	;
 
 /* I/O Input */
 io_entrada
 	: LER_DIGITAL ID {
-		asprintf(&$$, "digitalRead(%s)", $ID);
+		char *text;
+		asprintf(&text, "digitalRead(%s)", $ID);
+		$$ = node_new("io_entrada", text, NULL, NULL, NULL);
 	}
 	| LER_ANALOGICO ID {
-		asprintf(&$$, "analogRead(%s)", $ID);
+		char *text;
+		asprintf(&text, "analogRead(%s)", $ID);
+		$$ = node_new("io_entrada", text, NULL, NULL, NULL);
 	}
 	| LER_SERIAL {
-		asprintf(&$$, "Serial.read()");
+		$$ = node_new("io_entrada", strdup("Serial.read()"), NULL, NULL, NULL);
 	}
 	;
 
 /* I/O Output */
 io_saida
 	: ESCREVER_SERIAL STRING ';' {
-		asprintf(&$$, "Serial.println(%s);\n", $STRING);
+		char *text;
+		asprintf(&text, "Serial.println(%s);\n", $STRING);
+		$$ = node_new("io_saida", text, NULL, NULL, NULL);
 	}
 	| ENVIAR_HTTP STRING STRING ';' {
+		char *text;
 		asprintf(
-			&$$,
+			&text,
 			"http.begin(%s);\n"
 			"http.addHeader(\"Content-Type\", \"application/x-www-form-urlencoded\");\n"
 			"http.POST(%s);\n"
 			"http.end();\n",
 			$2, $3
 		);
+		$$ = node_new("io_saida", text, NULL, NULL, NULL);
 	}
 	| ENVIAR_HTTP STRING ID ';' {
+		char *text;
 		asprintf(
-			&$$,
+			&text,
 			"http.begin(%s);\n"
 			"http.addHeader(\"Content-Type\", \"application/x-www-form-urlencoded\");\n"
 			"http.POST(%s);\n"
 			"http.end();\n",
 			$STRING, $ID
 		);
+		$$ = node_new("io_saida", text, NULL, NULL, NULL);
 	}
 	;
 
@@ -271,10 +360,57 @@ int main(int argc, char **argv)
 	{
 		printf("%s", generated_code);
 	}
+	if (NULL != root)
+	{
+		print_ast(root, 0);
+	}
 	return 0;
 }
 
 void yyerror(const char* message)
 {
 	fprintf(stderr, "[ERROR] %d: %s\n", yylineno, message);
+}
+
+struct node* node_new(char *rule_name, char *text, struct node *child1, struct node *child2, struct node *child3)
+{
+	struct node *n = malloc(sizeof(struct node));
+	n->rule_name = strdup(rule_name);
+	n->text = text;
+	n->child1 = child1;
+	n->child2 = child2;
+	n->child3 = child3;
+
+	return n;
+}
+
+void node_add_child(struct node *parent, struct node *child)
+{
+	if (parent->child1 == NULL) {
+		parent->child1 = child;
+	} else if (parent->child2 == NULL) {
+		parent->child2 = child;
+	} else if (parent->child3 == NULL) {
+		parent->child3 = child;
+	} else {
+		fprintf(stderr, "Error: Cannot add more than 3 children to a node.\n");
+		exit(1);
+	}
+}
+
+void print_ast(struct node *n, int depth)
+{
+	if (NULL == n)
+		return;
+
+	for (int i = 0; i < depth - 1; ++i)
+	{
+		printf("  ");
+	}
+	printf("- ");
+	printf("%s\n", n->rule_name);
+
+	print_ast(n->child1, depth + 1);
+	print_ast(n->child2, depth + 1);
+	print_ast(n->child3, depth + 1);
 }
