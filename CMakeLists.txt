@@ -6,10 +6,13 @@ set(CMAKE_CXX_STANDARD 26)
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
+# Include directories
+include_directories(${CMAKE_SOURCE_DIR}/src/aux ${CMAKE_SOURCE_DIR}/src/lib_compiler)
+
 # Bison command
 add_custom_command(
 	OUTPUT ${CMAKE_SOURCE_DIR}/src/aux/parser.tab.h ${CMAKE_SOURCE_DIR}/src/aux/parser.tab.c
-	DEPENDS ${CMAKE_SOURCE_DIR}/src/parser.y
+	DEPENDS ${CMAKE_SOURCE_DIR}/src/parser.y ${CMAKE_SOURCE_DIR}/src/lib_compiler/ast.h
 	COMMAND bison --defines --verbose -Werror=conflicts-sr -Wcounterexamples --output=${CMAKE_SOURCE_DIR}/src/aux/parser.tab.c ${CMAKE_SOURCE_DIR}/src/parser.y
 	COMMENT "Running Bison"
 )
