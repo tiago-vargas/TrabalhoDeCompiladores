@@ -26,7 +26,11 @@ add_custom_command(
 )
 
 # Define a library for the parser and lexer
-add_library(compiler_lib ${CMAKE_SOURCE_DIR}/src/aux/parser.tab.c ${CMAKE_SOURCE_DIR}/src/aux/lex.yy.c)
+add_library(compiler_lib 
+	${CMAKE_SOURCE_DIR}/src/aux/parser.tab.c 
+	${CMAKE_SOURCE_DIR}/src/aux/lex.yy.c
+	${CMAKE_SOURCE_DIR}/src/lib_compiler/symbol_table.c
+)
 target_link_libraries(compiler_lib fl)
 
 # Define the main executable

@@ -3,12 +3,14 @@
 	#include <stdlib.h>
 	#include "lexer.h"
 	#include "ast.h"
+	#include "symbol_table.h"
 
 	void yyerror(const char *s);
 	extern FILE *yyin;
 
 	char *generated_code = NULL;
 	struct node *root;
+	Symbol *symbol_table = NULL;
 %}
 
 %union {
@@ -93,6 +95,12 @@ declaracoes
 
 declaracao
 	: VAR tipo ':' lista_ids ';' {
+		char *ids = $lista_ids->text;
+		char *token = strtok(ids, ", ");
+		while (token != NULL) {
+			symbol_table = symbol_add(symbol_table, token, get_type_from_string($tipo->text), yylineno);
+			token = strtok(NULL, ", ");
+		}
 		char *text;
 		asprintf(&text, "%s %s;\n", $tipo->text, $lista_ids->text);
 		$$ = node_new("declaracao", text);
@@ -260,6 +268,11 @@ expressao
 /* GPIO and PWM Configuration */
 configuracao
 	: CONFIGURAR ID COMO SAIDA ';' {
+		Symbol *sym = symbol_lookup(symbol_table, $ID);
+		if (sym == NULL) {
+			semantic_error("Variável não declarada", yylineno);
+		}
+		symbol_set_pin_config(symbol_table, $ID, PIN_OUTPUT);
 		char *text;
 		asprintf(&text, "pinMode(%s, OUTPUT);\n", $ID);
 		$$ = node_new("configuracao", text);
@@ -270,6 +283,11 @@ configuracao
 		node_add_child($$, terminal_node(";"));
 	}
 	| CONFIGURAR ID COMO ENTRADA ';' {
+		Symbol *sym = symbol_lookup(symbol_table, $ID);
+		if (sym == NULL) {
+			semantic_error("Variável não declarada", yylineno);
+		}
+		symbol_set_pin_config(symbol_table, $ID, PIN_INPUT);
 		char *text;
 		asprintf(&text, "pinMode(%s, INPUT);\n", $ID);
 		$$ = node_new("configuracao", text);
@@ -367,6 +385,7 @@ acao
 		node_add_child($$, terminal_node(";"));
 	}
 	| LIGAR ID ';' {
+		check_pin_config_for_operation(symbol_table, $ID, PIN_OUTPUT, yylineno);
 		char *text;
 		asprintf(&text, "digitalWrite(%s, HIGH);\n", $ID);
 		$$ = node_new("acao", text);
@@ -375,6 +394,7 @@ acao
 		node_add_child($$, terminal_node(";"));
 	}
 	| DESLIGAR ID ';' {
+		check_pin_config_for_operation(symbol_table, $ID, PIN_OUTPUT, yylineno);
 		char *text;
 		asprintf(&text, "digitalWrite(%s, LOW);\n", $ID);
 		$$ = node_new("acao", text);
